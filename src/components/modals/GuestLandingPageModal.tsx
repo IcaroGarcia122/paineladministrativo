@@ -232,28 +232,6 @@ export const GuestLandingPageModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Section: Photos */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold text-zinc-900">Galeria de Fotos</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {gallery.slice(0, 6).map((photo) => (
-                <div
-                  key={photo.id}
-                  className="h-56 rounded-2xl overflow-hidden border border-zinc-200/80 shadow-2xs relative group"
-                >
-                  <img
-                    src={photo.url}
-                    alt={photo.caption}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-3 flex items-end text-xs text-white font-medium">
-                    {photo.caption}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Section: Guia da Região */}
           <div className="space-y-4">
             <h2 className="text-xl font-bold text-zinc-900">Recomendações Locais do Anfitrião</h2>

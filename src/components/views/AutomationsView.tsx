@@ -18,8 +18,95 @@ import { Automation } from '../../types';
 export const AutomationsView: React.FC = () => {
   const { automations, updateAutomation, whatsAppStatus, property } = useApp();
 
-  const [selectedAutomation, setSelectedAutomation] = useState<Automation>(automations[0]);
+  const [selectedAutomation, setSelectedAutomation] = useState<Automation>(automations[0] || ({} as Automation));
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+
+  // Evolution API real integration state
+  const [evolutionStatus, setEvolutionStatus] = useState<{
+    connected: boolean;
+    state: string;
+    instance: string;
+  }>({
+    connected: true,
+    state: 'CONNECTED',
+    instance: 'teste1',
+  });
+  const [qrCodeData, setQrCodeData] = useState<string | null>(null);
+  const [isLoadingStatus, setIsLoadingStatus] = useState(false);
+  const [testPhone, setTestPhone] = useState('');
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [testFeedback, setTestFeedback] = useState<string | null>(null);
+
+  // Fetch status from local server proxy
+  const checkEvolutionStatus = async () => {
+    setIsLoadingStatus(true);
+    try {
+      const res = await fetch('/api/evolution/status?instance=teste1');
+      if (res.ok) {
+        const data = await res.json();
+        setEvolutionStatus({
+          connected: data.connected,
+          state: data.state,
+          instance: data.instance || 'teste1',
+        });
+      }
+    } catch (err) {
+      console.error('Error checking Evolution status:', err);
+    } finally {
+      setIsLoadingStatus(false);
+    }
+  };
+
+  // Fetch QR Code when opening modal or on demand
+  const handleFetchQrCode = async () => {
+    setIsLoadingStatus(true);
+    try {
+      const res = await fetch('/api/evolution/connect?instance=teste1');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.qrcode) {
+          setQrCodeData(data.qrcode);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching QR Code:', err);
+    } finally {
+      setIsLoadingStatus(false);
+    }
+  };
+
+  // Send real test WhatsApp message
+  const handleSendTestMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!testPhone.trim()) return;
+
+    setIsSendingTest(true);
+    setTestFeedback(null);
+
+    try {
+      const renderedMsg = getRenderedPreview();
+      const res = await fetch('/api/evolution/send-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: testPhone,
+          message: renderedMsg,
+          instance: 'teste1',
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setTestFeedback('✅ Mensagem enviada com sucesso via Evolution API!');
+      } else {
+        setTestFeedback(`⚠️ Erro ao enviar: ${data?.error || 'Verifique se a instância está conectada.'}`);
+      }
+    } catch (err: any) {
+      setTestFeedback('❌ Falha na comunicação com o servidor.');
+    } finally {
+      setIsSendingTest(false);
+    }
+  };
 
   // Variables list
   const variables = [
@@ -250,7 +337,7 @@ export const AutomationsView: React.FC = () => {
             </div>
 
             {/* Live Preview Box */}
-            <div className="space-y-2 pt-2 border-t border-zinc-100">
+            <div className="space-y-3 pt-2 border-t border-zinc-100">
               <span className="text-xs font-bold text-zinc-700 block">
                 Pré-visualização do WhatsApp do Hóspede:
               </span>
@@ -261,6 +348,33 @@ export const AutomationsView: React.FC = () => {
                     {selectedAutomation.time} ✓✓
                   </span>
                 </div>
+              </div>
+
+              {/* Form de Envio de Teste Real via Evolution API */}
+              <div className="bg-zinc-50 p-3.5 rounded-xl border border-zinc-200/80 space-y-2">
+                <label className="block text-xs font-bold text-zinc-800 flex items-center gap-1.5">
+                  <Send className="w-3.5 h-3.5 text-emerald-600" />
+                  Enviar Teste Real via WhatsApp (Evolution API):
+                </label>
+                <form onSubmit={handleSendTestMessage} className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Número com DDD (ex: 21999998888)"
+                    value={testPhone}
+                    onChange={(e) => setTestPhone(e.target.value)}
+                    className="flex-1 px-3 py-1.5 rounded-lg border border-zinc-300 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSendingTest || !testPhone.trim()}
+                    className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                  >
+                    {isSendingTest ? 'Enviando...' : 'Enviar Teste'}
+                  </button>
+                </form>
+                {testFeedback && (
+                  <p className="text-xs font-medium mt-1 transition-all">{testFeedback}</p>
+                )}
               </div>
             </div>
           </div>
@@ -285,19 +399,39 @@ export const AutomationsView: React.FC = () => {
             </div>
 
             <div className="text-center space-y-3">
-              <div className="w-48 h-48 bg-zinc-100 rounded-2xl border border-zinc-300 mx-auto flex flex-col items-center justify-center p-4 shadow-inner">
-                <QrCode className="w-28 h-28 text-zinc-800" />
-                <span className="text-[10px] text-emerald-600 font-bold mt-2 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Instância Conectada (+55 21 99876-5432)
-                </span>
+              <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 text-xs text-left space-y-1 font-mono">
+                <p><span className="text-zinc-400">Instância:</span> <strong>teste1</strong></p>
+                <p><span className="text-zinc-400">Servidor:</span> <strong>n8n-evolution-api.iqfos1.easypanel.host</strong></p>
+                <p><span className="text-zinc-400">Status:</span> <span className="text-emerald-600 font-bold">{evolutionStatus.state}</span></p>
               </div>
+
+              {qrCodeData ? (
+                <div className="w-52 h-52 bg-white rounded-2xl border border-zinc-300 mx-auto p-2 flex items-center justify-center shadow-xs">
+                  <img src={qrCodeData.startsWith('data:') ? qrCodeData : `data:image/png;base64,${qrCodeData}`} alt="QR Code WhatsApp" className="w-full h-full object-contain" />
+                </div>
+              ) : (
+                <div className="w-48 h-48 bg-zinc-100 rounded-2xl border border-zinc-300 mx-auto flex flex-col items-center justify-center p-4 shadow-inner">
+                  <QrCode className="w-20 h-20 text-zinc-800" />
+                  <span className="text-[10px] text-emerald-600 font-bold mt-2 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Conectado ao WhatsApp do Dono
+                  </span>
+                </div>
+              )}
+
               <p className="text-xs text-zinc-600 leading-relaxed">
-                A instância da Evolution API está operacional e conectada ao número da Villa do Poente.
+                Escaneie o QR Code acima no WhatsApp (Aparelhos Conectados) ou utilize o fluxo ativo no n8n para disparo automático.
               </p>
             </div>
 
-            <div className="pt-2 flex justify-end">
+            <div className="pt-2 flex justify-between gap-2">
+              <button
+                onClick={handleFetchQrCode}
+                disabled={isLoadingStatus}
+                className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-bold rounded-xl cursor-pointer transition-all"
+              >
+                {isLoadingStatus ? 'Gerando...' : 'Gerar Novo QR Code'}
+              </button>
               <button
                 onClick={() => setIsQrModalOpen(false)}
                 className="px-5 py-2 bg-zinc-900 text-white text-xs font-bold rounded-xl cursor-pointer"

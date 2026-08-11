@@ -4,7 +4,6 @@ import {
   Calendar,
   Users,
   Building2,
-  Image,
   Compass,
   Bot,
   MessageSquareCode,
@@ -14,6 +13,7 @@ import {
   ChevronRight,
   Globe,
   CheckCircle2,
+  LogOut,
 } from 'lucide-react';
 import { ViewMode } from '../types';
 import { useApp } from '../context/AppContext';
@@ -30,7 +30,6 @@ const navItems: NavItem[] = [
   { id: 'calendar', label: 'Calendário', icon: Calendar },
   { id: 'guests', label: 'Hóspedes', icon: Users },
   { id: 'property', label: 'Minha Hospedagem', icon: Building2 },
-  { id: 'gallery', label: 'Galeria', icon: Image },
   { id: 'guide', label: 'Guia da Região', icon: Compass },
   { id: 'concierge', label: 'Concierge IA', icon: Bot, badge: 'IA 24/7' },
   { id: 'automations', label: 'Automações', icon: MessageSquareCode },
@@ -41,9 +40,10 @@ const navItems: NavItem[] = [
 interface SidebarProps {
   mobileOpen: boolean;
   setMobileOpen: (open: boolean) => void;
+  onLogout?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, onLogout }) => {
   const { activeView, setActiveView, property, setIsLandingModalOpen } = useApp();
 
   return (
@@ -146,7 +146,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
         </div>
 
         {/* Footer info & Host profile */}
-        <div id="sidebar-footer" className="p-4 border-t border-zinc-100 bg-zinc-50/50">
+        <div id="sidebar-footer" className="p-4 border-t border-zinc-100 bg-zinc-50/50 space-y-3">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-rose-500 text-white font-semibold flex items-center justify-center text-sm shadow-xs">
               Í
@@ -157,6 +157,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
             </div>
             <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
           </div>
+
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-zinc-700 hover:text-rose-700 bg-white hover:bg-rose-50 rounded-lg border border-zinc-200 transition-all cursor-pointer shadow-2xs"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sair / Voltar ao Site</span>
+            </button>
+          )}
         </div>
       </aside>
     </>

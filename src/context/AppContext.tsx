@@ -77,7 +77,7 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'villa_do_poente_saas_v1';
+const STORAGE_KEY = 'villa_do_poente_saas_v3';
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeView, setActiveView] = useState<ViewMode>('dashboard');
@@ -265,7 +265,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newItem: KnowledgeItem = {
       ...item,
       id: `kb-${Date.now()}`,
-      updatedAt: new Date().toISOString().split('T')[0],
+      updatedAt: new Date().toISOString().split('T')[0] || new Date().toISOString(),
     };
     setKnowledgeBase((prev) => [newItem, ...prev]);
     showToast('Item adicionado à base de conhecimento');

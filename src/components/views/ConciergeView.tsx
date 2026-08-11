@@ -1,31 +1,16 @@
 import React, { useState } from 'react';
 import {
   Bot,
-  MessageSquare,
-  Sparkles,
   Plus,
   Trash2,
   Send,
   HelpCircle,
   X,
-  CheckCircle2,
-  Sliders,
   BookOpen,
   Star,
-  Smile,
-  Briefcase,
-  Sun,
-  Crown,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { ConciergeTone, KnowledgeItem } from '../../types';
-
-const tonesList: { id: ConciergeTone; label: string; desc: string }[] = [
-  { id: 'Acolhedor', label: 'Acolhedor', desc: 'Caloroso, solícito, atencioso e simpático' },
-  { id: 'Profissional', label: 'Profissional', desc: 'Direto, cortês, objetivo e institucional' },
-  { id: 'Descontraído', label: 'Descontraído', desc: 'Jovial, praiano, informal e leve' },
-  { id: 'Sofisticado', label: 'Sofisticado', desc: 'Elegante, refinado, tom de alta hotelaria' },
-];
+import { KnowledgeItem } from '../../types';
 
 const kbSections = [
   'Hospedagem',
@@ -190,77 +175,8 @@ export const ConciergeView: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Personalidade & Base de Conhecimento (7 cols) */}
+        {/* Left Column: Base de Conhecimento (7 cols) */}
         <div className="lg:col-span-7 space-y-8">
-          {/* Personalidade Card */}
-          <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-xs space-y-5">
-            <h4 className="text-sm font-bold uppercase tracking-wider text-rose-600 border-b border-zinc-100 pb-2 flex items-center gap-2">
-              <Sliders className="w-4 h-4" /> Personalidade do Concierge
-            </h4>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-zinc-700 mb-1">
-                  Nome do Concierge
-                </label>
-                <input
-                  type="text"
-                  value={concierge.name}
-                  onChange={(e) => updateConcierge({ name: e.target.value })}
-                  className="w-full px-3.5 py-2 rounded-xl border border-zinc-300 text-sm font-medium focus:ring-2 focus:ring-rose-500/20 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-zinc-700 mb-1">
-                  Tom de Voz Ativo
-                </label>
-                <span className="px-3 py-2 bg-rose-50 text-rose-700 font-bold text-xs rounded-xl border border-rose-200 block text-center">
-                  {concierge.tone}
-                </span>
-              </div>
-            </div>
-
-            {/* Tone Selector Cards */}
-            <div>
-              <label className="block text-xs font-bold text-zinc-700 mb-2">
-                Selecione a atmosfera do atendimento:
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                {tonesList.map((t) => {
-                  const isSelected = concierge.tone === t.id;
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => updateConcierge({ tone: t.id })}
-                      className={`p-3 rounded-xl border transition-all text-left cursor-pointer flex flex-col justify-between ${
-                        isSelected
-                          ? 'bg-rose-50 border-rose-400 text-rose-900 shadow-2xs font-bold'
-                          : 'bg-zinc-50 border-zinc-200 text-zinc-600 hover:bg-zinc-100'
-                      }`}
-                    >
-                      <span className="text-xs font-bold block">{t.label}</span>
-                      <span className="text-[11px] font-normal text-zinc-500 mt-1">{t.desc}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-zinc-700 mb-1">
-                Mensagem Padrão de Apresentação
-              </label>
-              <textarea
-                rows={3}
-                value={concierge.welcomeMessage}
-                onChange={(e) => updateConcierge({ welcomeMessage: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-300 text-xs font-medium focus:ring-2 focus:ring-rose-500/20 focus:outline-none"
-              />
-            </div>
-          </div>
-
           {/* Base de Conhecimento Card */}
           <div className="bg-white p-6 rounded-2xl border border-zinc-200/80 shadow-xs space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-2">

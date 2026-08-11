@@ -1,13 +1,14 @@
 import React from 'react';
-import { Menu, Globe, MessageSquare, Eye, Sparkles } from 'lucide-react';
+import { Menu, MessageSquare, Eye, LogOut } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 interface HeaderProps {
   setMobileOpen: (open: boolean) => void;
+  onLogout?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
-  const { activeView, whatsAppStatus, setIsLandingModalOpen } = useApp();
+export const Header: React.FC<HeaderProps> = ({ setMobileOpen, onLogout }) => {
+  const { activeView, setIsLandingModalOpen } = useApp();
 
   const getTitleForView = () => {
     switch (activeView) {
@@ -30,11 +31,6 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
         return {
           greeting: 'Minha Hospedagem 🏡',
           subtitle: 'Edite informações, comodidades e regras exibidas aos hóspedes.',
-        };
-      case 'gallery':
-        return {
-          greeting: 'Galeria de Fotos 📸',
-          subtitle: 'Gerencie e organize as fotos de apresentação da Villa.',
         };
       case 'guide':
         return {
@@ -113,11 +109,23 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
             <span>WhatsApp Conectado</span>
           </div>
 
+          {/* Return to Guest Site / Logout */}
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs sm:text-sm font-semibold border border-rose-200 shadow-2xs transition-all cursor-pointer"
+              title="Sair do Painel Admin e Voltar ao Site Principal"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Voltar ao Site</span>
+            </button>
+          )}
+
           {/* Guest Landing Page Preview trigger */}
           <button
             id="header-preview-landing-btn"
             onClick={() => setIsLandingModalOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-sm hover:shadow transition-all cursor-pointer group"
+            className="flex items-center gap-2 px-3.5 py-2 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs hover:shadow transition-all cursor-pointer group"
           >
             <Eye className="w-4 h-4 text-rose-400 group-hover:scale-110 transition-transform" />
             <span className="hidden md:inline">Ver Site do Hóspede</span>

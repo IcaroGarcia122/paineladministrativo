@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppProvider, useApp } from './context/AppContext';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -7,15 +8,21 @@ import { DashboardView } from './components/views/DashboardView';
 import { CalendarView } from './components/views/CalendarView';
 import { GuestsView } from './components/views/GuestsView';
 import { PropertyView } from './components/views/PropertyView';
-import { GalleryView } from './components/views/GalleryView';
 import { LocalGuideView } from './components/views/LocalGuideView';
 import { ConciergeView } from './components/views/ConciergeView';
 import { AutomationsView } from './components/views/AutomationsView';
 import { AnalyticsView } from './components/views/AnalyticsView';
 import { SettingsView } from './components/views/SettingsView';
 import { GuestLandingPageModal } from './components/modals/GuestLandingPageModal';
+import { GuestSiteView } from './components/views/GuestSiteView';
 
-const MainContent: React.FC = () => {
+const queryClient = new QueryClient();
+
+interface MainContentProps {
+  onLogout: () => void;
+}
+
+const MainContent: React.FC<MainContentProps> = ({ onLogout }) => {
   const { activeView } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -29,8 +36,6 @@ const MainContent: React.FC = () => {
         return <GuestsView />;
       case 'property':
         return <PropertyView />;
-      case 'gallery':
-        return <GalleryView />;
       case 'guide':
         return <LocalGuideView />;
       case 'concierge':
@@ -49,11 +54,11 @@ const MainContent: React.FC = () => {
   return (
     <div className="min-h-screen bg-zinc-50/70 text-zinc-900 font-sans antialiased flex flex-col">
       {/* Sidebar */}
-      <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+      <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} onLogout={onLogout} />
 
       {/* Main Content Area */}
       <div className="lg:pl-64 flex-1 flex flex-col min-w-0">
-        <Header setMobileOpen={setMobileOpen} />
+        <Header setMobileOpen={setMobileOpen} onLogout={onLogout} />
 
         <main className="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto">
           {renderCurrentView()}
@@ -68,9 +73,18 @@ const MainContent: React.FC = () => {
 };
 
 export default function App() {
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+
   return (
-    <AppProvider>
-      <MainContent />
-    </AppProvider>
+    <QueryClientProvider client={queryClient}>
+      <AppProvider>
+        {!isAdminLoggedIn ? (
+          <GuestSiteView onAdminLogin={() => setIsAdminLoggedIn(true)} />
+        ) : (
+          <MainContent onLogout={() => setIsAdminLoggedIn(false)} />
+        )}
+      </AppProvider>
+    </QueryClientProvider>
   );
 }
+

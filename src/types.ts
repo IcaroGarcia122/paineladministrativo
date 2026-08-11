@@ -3,7 +3,6 @@ export type ViewMode =
   | 'calendar'
   | 'guests'
   | 'property'
-  | 'gallery'
   | 'guide'
   | 'concierge'
   | 'automations'
@@ -38,7 +37,7 @@ export interface Stay {
   nextAutomation?: {
     title: string;
     scheduledFor: string;
-  };
+  } | undefined;
 }
 
 export interface BlockedDate {
