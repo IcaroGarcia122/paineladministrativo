@@ -1,0 +1,6 @@
+{
+  "name": "Villa do Poente - Painel SaaS Host",
+  "description": "Painel administrativo SaaS premium para proprietários de hospedagens Airbnb com Concierge Virtual, Automações WhatsApp, Calendário, Galeria e Guia Local.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
