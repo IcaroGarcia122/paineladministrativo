@@ -52,7 +52,7 @@ const MainContent: React.FC<MainContentProps> = ({ onLogout }) => {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50/70 text-zinc-900 font-sans antialiased flex flex-col">
+    <div className="min-h-screen bg-[#0F0D0A] text-[#FBF9F4] font-sans antialiased selection:bg-[#C59A55] selection:text-black flex flex-col">
       {/* Sidebar */}
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} onLogout={onLogout} />
 

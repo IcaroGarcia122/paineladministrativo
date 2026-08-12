@@ -20,24 +20,26 @@ function ReservationsPage() {
   const { data: reservations, isLoading } = useQuery({
     queryKey: ['admin-reservations'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('guests')
-        .select('*')
-        .order('check_in', { ascending: false })
-      if (error) throw error
-      return data
+      const res = await fetch('/api/stays')
+      if (!res.ok) throw new Error('Falha ao carregar estadias')
+      return res.json()
     }
   })
 
   // Update Status Mutation
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string, status: string }) => {
-      const { error } = await supabase.from('guests').update({ status }).eq('id', id)
-      if (error) throw error
+    mutationFn: async ({ id, status, resItem }: { id: string, status: string, resItem: any }) => {
+      const res = await fetch('/api/stays', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...resItem, id, status }),
+      })
+      if (!res.ok) throw new Error('Falha ao atualizar status')
+      return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-reservations'] })
-      toast.success('Status atualizado.')
+      toast.success('Status da reserva atualizado no Supabase.')
     }
   })
 
@@ -84,27 +86,33 @@ function ReservationsPage() {
                   </td>
                 </tr>
               ) : (
-                reservations?.map((res) => {
+                reservations?.map((res: any) => {
                   const isBlocked = res.notes?.includes('[BLOQUEIO]')
+                  const guestName = res.guestName || res.name || 'Hóspede'
+                  const guestPhone = res.guestPhone || res.phone || ''
+                  const checkIn = res.checkIn || res.check_in
+                  const checkOut = res.checkOut || res.check_out
+                  const count = res.guestsCount || res.num_guests || 1
+
                   return (
                     <tr key={res.id} className={`hover:bg-[#F7F3EA]/30 transition-colors ${isBlocked ? 'bg-red-50/30' : ''}`}>
                       <td className="px-6 py-4">
-                        <div className="font-medium text-[#24170F]">{res.name}</div>
-                        <div className="text-[10px] text-muted-foreground">{res.email || 'Sem e-mail'}</div>
+                        <div className="font-medium text-[#24170F]">{guestName}</div>
+                        <div className="text-[10px] text-muted-foreground">{guestPhone || 'Sem telefone'}</div>
                       </td>
                       <td className="px-6 py-4 text-sm text-muted-foreground">
                         <div className="flex items-center gap-2">
                           <Calendar className="w-3 h-3 text-gold" />
-                          {res.check_in ? new Date(res.check_in).toLocaleDateString('pt-BR') : '-'} a {res.check_out ? new Date(res.check_out).toLocaleDateString('pt-BR') : '-'}
+                          {checkIn ? new Date(checkIn + 'T00:00:00').toLocaleDateString('pt-BR') : '-'} a {checkOut ? new Date(checkOut + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm">
-                        <Users className="w-3 h-3 inline mr-1 text-gold" /> {res.num_guests || 0}
+                        <Users className="w-3 h-3 inline mr-1 text-gold" /> {count}
                       </td>
                       <td className="px-6 py-4">
                         <select 
-                          value={res.status || 'pending'}
-                          onChange={(e) => updateStatus.mutate({ id: res.id, status: e.target.value })}
+                          value={res.status || 'confirmed'}
+                          onChange={(e) => updateStatus.mutate({ id: res.id, status: e.target.value, resItem: res })}
                           className={`text-[10px] px-2 py-1 rounded border bg-transparent font-semibold uppercase tracking-tighter ${
                             res.status === 'confirmed' ? 'border-green-200 text-green-700 bg-green-50' :
                             res.status === 'cancelled' ? 'border-red-200 text-red-700 bg-red-50' :

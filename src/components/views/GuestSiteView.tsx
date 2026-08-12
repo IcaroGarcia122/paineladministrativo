@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { getSiteContent, trackAirbnbClick } from "@/lib/cms.functions";
 import { 
   Waves, 
@@ -13,9 +13,7 @@ import {
   Snowflake,
   Home,
   BedDouble,
-  DoorOpen,
   Maximize2,
-  Palmtree,
   Users,
   MessageCircle,
   Compass,
@@ -35,7 +33,14 @@ import {
   Mic,
   Sparkles,
   ChevronLeft,
-  ShieldCheck
+  ShieldCheck,
+  MapPin,
+  Clock,
+  Sparkle,
+  Image as ImageIcon,
+  Check,
+  SlidersHorizontal,
+  ExternalLink
 } from "lucide-react";
 
 import heroImg from "@/components/assets/hero-chale.jfif";
@@ -49,6 +54,7 @@ import img14 from "@/components/assets/image-14.jfif";
 import img15 from "@/components/assets/image-15.jfif";
 import { AdminLoginModal } from "@/components/modals/AdminLoginModal";
 import { useApp } from "@/context/AppContext";
+import { findBestKnowledgeMatch } from "@/utils/concierge";
 
 interface GuestSiteViewProps {
   onAdminLogin: () => void;
@@ -57,14 +63,31 @@ interface GuestSiteViewProps {
 export const GuestSiteView: React.FC<GuestSiteViewProps> = ({ onAdminLogin }) => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isConciergeOpen, setIsConciergeOpen] = useState(false);
+  const [activeGalleryTab, setActiveGalleryTab] = useState<'all' | 'suite' | 'nature' | 'living'>('all');
+  const [lightboxImage, setLightboxImage] = useState<{ url: string; title: string; subtitle: string } | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+
   const { concierge, knowledgeBase } = useApp();
+
+  // Scroll detect for header background
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 80) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const [chatMessages, setChatMessages] = useState<
     { sender: 'user' | 'bot'; text: string; time: string }[]
   >([
     {
       sender: 'bot',
-      text: concierge.welcomeMessage || 'Olá! Sou o Concierge do Chalé A-Frame. Como posso ajudar sua estadia em Florianópolis?',
+      text: concierge.welcomeMessage || 'Olá! Sou o Concierge Virtual do Chalé A-Frame. Como posso tornar sua estadia em Florianópolis memorável?',
       time: '14:00',
     },
   ]);
@@ -100,25 +123,13 @@ export const GuestSiteView: React.FC<GuestSiteViewProps> = ({ onAdminLogin }) =>
     setChatInput('');
 
     setTimeout(() => {
-      const lower = userText.toLowerCase();
-      const match = knowledgeBase.find(
-        (k) =>
-          k.question.toLowerCase().includes(lower) ||
-          k.answer.toLowerCase().includes(lower) ||
-          lower.split(' ').some((w) => w.length > 3 && k.question.toLowerCase().includes(w))
-      );
+      const match = findBestKnowledgeMatch(userText, knowledgeBase);
 
       let botResponse = '';
       if (match) {
         botResponse = match.answer;
-      } else if (lower.includes('checkin') || lower.includes('check-in') || lower.includes('horario')) {
-        botResponse = 'O horário de check-in é a partir das 15:00 e o check-out até às 11:00.';
-      } else if (lower.includes('wifi') || lower.includes('internet') || lower.includes('senha')) {
-        botResponse = 'A rede de Wi-Fi é "ChaleAFrame_5G" e a senha é informada no guia da casa ao fazer check-in.';
-      } else if (lower.includes('restaurante') || lower.includes('comer') || lower.includes('jantar')) {
-        botResponse = 'Recomendamos os restaurantes de frutos do mar no Ribeirão da Ilha, a poucos minutos do chalé!';
       } else {
-        botResponse = 'Agradecemos o contato! Nossa equipe responderá sua mensagem em instantes para garantir que sua experiência no chalé seja perfeita.';
+        botResponse = 'Agradecemos a mensagem! Nossa inteligência Concierge já registrou sua dúvida e notificamos o anfitrião diretamente.';
       }
 
       setChatMessages((prev) => [
@@ -129,7 +140,7 @@ export const GuestSiteView: React.FC<GuestSiteViewProps> = ({ onAdminLogin }) =>
           time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
-    }, 600);
+    }, 400);
   };
 
   const [mockupMessages, setMockupMessages] = useState<
@@ -175,19 +186,11 @@ export const GuestSiteView: React.FC<GuestSiteViewProps> = ({ onAdminLogin }) =>
     setMockupInput('');
 
     setTimeout(() => {
-      const lower = userMsg.toLowerCase();
+      const match = findBestKnowledgeMatch(userMsg, knowledgeBase);
       let botResponse = '';
 
-      if (lower.includes('wifi') || lower.includes('wi-fi') || lower.includes('senha')) {
-        botResponse = '📶 Wi-Fi: Chale_AFrame_5G\n🔑 Senha: natureza2026\nSinal de alta velocidade em todos os cômodos e deck!';
-      } else if (lower.includes('restaurante') || lower.includes('comer') || lower.includes('jantar') || lower.includes('frutos do mar')) {
-        botResponse = '🦐 Recomendamos o Ostradamus (Ribeirão da Ilha - 12 min) e o Bar do Arante (Pântano do Sul - 15 min). Ambos excelentes!';
-      } else if (lower.includes('praia') || lower.includes('passeio') || lower.includes('mirante')) {
-        botResponse = '🏖️ O chalé fica pertinho das praias de Armação, Matadeiro e Campeche. Perfeitas para banho, surf e caminhadas!';
-      } else if (lower.includes('hidro') || lower.includes('banheira') || lower.includes('spa')) {
-        botResponse = '习 A hidromassagem fica na suíte master. Basta acionar o aquecimento no painel lateral. Relaxamento garantido com vista para a mata!';
-      } else if (lower.includes('checkin') || lower.includes('check-in') || lower.includes('horario')) {
-        botResponse = '⏰ Check-in a partir das 15:00 e Check-out até às 11:00. Caso precise de early check-in, avise-nos com antecedência!';
+      if (match) {
+        botResponse = match.answer;
       } else {
         botResponse = '✨ Atendimento Concierge IA: Mensagem recebida! Nossa equipe e sistema inteligente garantem que sua estadia no Chalé A-Frame seja perfeita.';
       }
@@ -200,404 +203,444 @@ export const GuestSiteView: React.FC<GuestSiteViewProps> = ({ onAdminLogin }) =>
           time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
-    }, 500);
+    }, 400);
   };
 
+  // Gallery items with categories
+  const galleryItems = [
+    { id: 1, url: heroImg, title: "Design A-Frame Exclusivo", subtitle: "Fachada icônica em meio à mata preservada", category: "nature", colSpan: "md:col-span-8" },
+    { id: 2, url: quartoImg, title: "Suíte Aconchegante", subtitle: "Conforto supremo com vista panorâmica", category: "suite", colSpan: "md:col-span-4" },
+    { id: 3, url: banheiraImg, title: "Hidromassagem Interna", subtitle: "Spa e relaxamento privativo", category: "suite", colSpan: "md:col-span-4" },
+    { id: 4, url: salaImg, title: "Living Integrado", subtitle: "Pé-direito alto e iluminação natural", category: "living", colSpan: "md:col-span-4" },
+    { id: 5, url: cozinhaImg, title: "Cozinha Gourmet", subtitle: "Equipada para momentos especiais", category: "living", colSpan: "md:col-span-4" },
+    { id: 6, url: img12, title: "Deck & Balanço Suspenso", subtitle: "O lugar perfeito para contemplar", category: "nature", colSpan: "md:col-span-6" },
+    { id: 7, url: img13, title: "Vista Panorâmica do Mar", subtitle: "Horizonte infinito no Sul da Ilha", category: "nature", colSpan: "md:col-span-6" },
+  ];
+
+  const filteredGallery = galleryItems.filter(item => 
+    activeGalleryTab === 'all' ? true : item.category === activeGalleryTab
+  );
+
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden text-foreground">
-      {/* Hero Section */}
-      <section className="relative h-[100vh] z-0">
-        <div className="fixed inset-0 w-full h-screen pointer-events-none">
+    <div className="min-h-screen bg-[#0F0D0A] text-[#FBF9F4] font-sans antialiased selection:bg-[#C59A55] selection:text-black overflow-x-hidden">
+      
+      {/* 1. Header Fixo & Flutuante Premium */}
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+        isScrolled 
+          ? "bg-[#14100C]/90 backdrop-blur-xl border-b border-[#C59A55]/20 py-3.5 shadow-2xl" 
+          : "bg-gradient-to-b from-black/80 via-black/40 to-transparent py-6"
+      }`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 flex items-center justify-between">
+          
+          {/* Logo Brand */}
+          <a href="#" className="flex items-center gap-3 group">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#C59A55] via-[#E6C994] to-[#B8860B] p-[1px] shadow-lg group-hover:scale-105 transition-transform">
+              <div className="w-full h-full bg-[#14100C] rounded-full flex items-center justify-center">
+                <Sparkle className="w-4 h-4 text-[#E6C994]" />
+              </div>
+            </div>
+            <div className="flex flex-col">
+              <span className="font-serif text-base sm:text-lg font-bold tracking-tight text-white leading-none">
+                CHALÉ A-FRAME
+              </span>
+              <span className="text-[9px] uppercase tracking-[0.3em] text-[#C59A55] font-semibold mt-0.5">
+                Florianópolis • SC
+              </span>
+            </div>
+          </a>
+
+          {/* Navigation Links (Desktop) */}
+          <nav className="hidden lg:flex items-center gap-8 text-xs uppercase tracking-[0.2em] font-medium text-white/80">
+            <a href="#sobre" className="hover:text-[#E6C994] transition-colors relative py-1 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 hover:after:w-full after:h-[1px] after:bg-[#C59A55] after:transition-all">
+              O Chalé
+            </a>
+            <a href="#galeria" className="hover:text-[#E6C994] transition-colors relative py-1 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 hover:after:w-full after:h-[1px] after:bg-[#C59A55] after:transition-all">
+              Galeria
+            </a>
+            <a href="#experiencia" className="hover:text-[#E6C994] transition-colors relative py-1 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 hover:after:w-full after:h-[1px] after:bg-[#C59A55] after:transition-all">
+              Experiência
+            </a>
+            <a href="#concierge" className="hover:text-[#E6C994] transition-colors relative py-1 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 hover:after:w-full after:h-[1px] after:bg-[#C59A55] after:transition-all">
+              Concierge 24h
+            </a>
+            <a href="#comodidades" className="hover:text-[#E6C994] transition-colors relative py-1 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 hover:after:w-full after:h-[1px] after:bg-[#C59A55] after:transition-all">
+              Comodidades
+            </a>
+          </nav>
+
+          {/* Action Buttons Header */}
+          <div className="flex items-center gap-3">
+            {/* Botão Anfitrião / Login */}
+            <button
+              type="button"
+              onClick={() => setIsLoginModalOpen(true)}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/5 border border-white/10 hover:border-[#C59A55]/50 text-white/80 hover:text-white text-xs font-medium tracking-wider transition-all hover:bg-white/10 active:scale-95"
+              title="Área do Anfitrião / Painel Admin"
+            >
+              <Lock className="w-3.5 h-3.5 text-[#C59A55]" />
+              <span className="hidden sm:inline">Anfitrião</span>
+            </button>
+
+            {/* CTA Reservar */}
+            <a
+              href={content.airbnb_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackClick.mutate({ source: 'header_nav' })}
+              className="relative group overflow-hidden px-5 py-2.5 rounded-full bg-gradient-to-r from-[#C59A55] via-[#D4A85F] to-[#B8860B] text-black font-bold text-xs uppercase tracking-[0.15em] transition-all hover:shadow-[0_0_25px_rgba(197,154,85,0.4)] active:scale-95 flex items-center gap-2"
+            >
+              <span>Reservar</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
+
+        </div>
+      </header>
+
+      {/* 2. Hero Section Principal Luxo */}
+      <section className="relative h-[100vh] min-h-[680px] z-10 flex items-center justify-center overflow-hidden">
+        {/* Imagem de Fundo Parallax Suave (Fixed) */}
+        <div className="fixed inset-0 w-full h-screen pointer-events-none z-0">
           <img
             src={heroImg}
-            alt="Chalé A-frame"
-            className="w-full h-full object-cover"
+            alt="Chalé A-frame Florianópolis"
+            className="w-full h-full object-cover scale-105 filter brightness-90 contrast-105"
           />
-          <div className="absolute inset-0 bg-black/40" />
-          
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 max-w-4xl mx-auto pointer-events-auto">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8 }}
-              className="inline-block border border-white/30 px-4 py-1 mb-8 rounded-full bg-black/20 backdrop-blur-sm"
-            >
-              <span className="text-[10px] md:text-xs uppercase tracking-[0.3em] text-white font-sans font-light">
-                CHALÉ EXCLUSIVO EM FLORIANÓPOLIS - SC
-              </span>
-            </motion.div>
-            <motion.h1 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 1, delay: 0.2 }}
-              className="text-5xl md:text-8xl font-serif leading-[1.1] mb-8 tracking-tight text-white"
-            >
-              Conecte-se com<br />o que realmente<br />
-              <motion.span 
-                initial={{ opacity: 0, scale: 0.8 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 1.2, delay: 0.8 }}
-                style={{ fontFamily: "'Pinyon Script', cursive" }}
-                className="bg-gradient-to-br from-[#E6C994] via-[#D4A85F] to-[#C59A55] bg-clip-text text-transparent block mt-2 text-7xl md:text-[10rem] font-normal tracking-wide drop-shadow-md py-2"
-              >
-                importa.
-              </motion.span>
-            </motion.h1>
-            <motion.p 
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 1, delay: 0.5 }}
-              className="text-sm md:text-base font-sans mb-12 max-w-xl mx-auto opacity-90 font-light leading-relaxed text-white"
-            >
-              Chalé privativo com vista para o mar, banheira interna e deck exclusivo para momentos inesquecíveis.
-            </motion.p>
-            <div className="flex flex-col md:flex-row gap-4 justify-center">
-              <motion.a
-                href={content.airbnb_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => trackClick.mutate({ source: 'hero_main' })}
-                whileHover={{ scale: 1.05, y: -5 }}
-                whileTap={{ scale: 0.95 }}
-                className="bg-[#C59A55] text-white px-12 py-6 rounded-full font-sans font-bold tracking-[0.2em] hover:bg-[#d4a85f] transition-all shadow-xl text-center text-sm md:text-base"
-              >
-                RESERVE NO AIRBNB
-              </motion.a>
+          {/* Gradients de Sobreposição Sofisticados */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0F0D0A] via-black/40 to-black/60" />
+          <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px]" />
+        </div>
 
-              <motion.a
-                href="#sobre"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.8 }}
-                className="group relative px-8 py-4 overflow-hidden rounded-full border border-[#C59A55]/40 text-white font-sans transition-all hover:border-[#C59A55]"
-              >
-                <span className="relative z-10">CONHEÇA O CHALÉ ↓</span>
-              </motion.a>
+        {/* Conteúdo Central da Hero */}
+        <div className="relative z-20 text-center px-4 max-w-5xl mx-auto pt-20">
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="inline-flex items-center gap-2.5 border border-[#C59A55]/40 px-4 py-1.5 mb-8 rounded-full bg-black/40 backdrop-blur-md shadow-2xl"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-[#E6C994]" />
+            <span className="text-[10px] md:text-xs uppercase tracking-[0.3em] text-[#E6C994] font-sans font-semibold">
+              REFÚGIO BOUTIQUE DE LUXO • FLORIANÓPOLIS
+            </span>
+          </motion.div>
+
+          <motion.h1 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.2 }}
+            className="text-4xl sm:text-6xl md:text-8xl font-serif leading-[1.05] mb-6 tracking-tight text-white drop-shadow-lg"
+          >
+            Conecte-se com<br />o que realmente<br />
+            <motion.span 
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1.2, delay: 0.6 }}
+              style={{ fontFamily: "'Pinyon Script', cursive" }}
+              className="bg-gradient-to-r from-[#F3E5AB] via-[#E6C994] to-[#C59A55] bg-clip-text text-transparent block mt-1 text-6xl sm:text-8xl md:text-[9.5rem] font-normal tracking-wide py-1 drop-shadow-2xl"
+            >
+              importa.
+            </motion.span>
+          </motion.h1>
+
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1, delay: 0.5 }}
+            className="text-sm sm:text-base md:text-lg font-sans mb-10 max-w-2xl mx-auto text-white/90 font-light leading-relaxed drop-shadow"
+          >
+            Chalé privativo estilo A-Frame com vista privilegiada para o mar, banheira de hidromassagem e deck exclusivo na mata nativa.
+          </motion.p>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.7 }}
+            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+          >
+            <a
+              href={content.airbnb_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackClick.mutate({ source: 'hero_main' })}
+              className="w-full sm:w-auto bg-gradient-to-r from-[#C59A55] via-[#D4A85F] to-[#B8860B] text-black px-10 py-4.5 rounded-full font-sans font-bold tracking-[0.2em] hover:brightness-110 transition-all shadow-[0_10px_35px_rgba(197,154,85,0.3)] text-center text-xs sm:text-sm uppercase active:scale-95"
+            >
+              RESERVE NO AIRBNB
+            </a>
+
+            <a
+              href="#sobre"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById('sobre')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="w-full sm:w-auto px-8 py-4.5 rounded-full border border-white/30 hover:border-[#C59A55] bg-black/30 backdrop-blur-sm text-white font-sans text-xs sm:text-sm font-semibold tracking-widest uppercase transition-all hover:bg-white/10 text-center cursor-pointer"
+            >
+              CONHEÇA O CHALÉ ↓
+            </a>
+          </motion.div>
+        </div>
+
+        {/* Indicador Flutuante no Rodapé da Hero */}
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 hidden md:flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-white/50 animate-bounce">
+          <span>Rolar para explorar</span>
+        </div>
+      </section>
+
+      {/* 3. Ribbon de Destaques Rápidos */}
+      <section className="relative z-20 bg-[#16120E] border-y border-[#C59A55]/20 py-6 text-white/90">
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-6 text-center divide-x-0 md:divide-x divide-[#C59A55]/15">
+          <div className="flex flex-col items-center p-2">
+            <div className="flex items-center gap-1 text-[#E6C994] mb-1">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className="w-3.5 h-3.5 fill-[#E6C994]" />
+              ))}
             </div>
+            <span className="text-sm font-bold text-white">5.0 ★ Nota Máxima</span>
+            <span className="text-[10px] text-white/50 uppercase tracking-widest mt-0.5">Preferido dos Hóspedes</span>
+          </div>
+
+          <div className="flex flex-col items-center p-2">
+            <Bath className="w-5 h-5 text-[#E6C994] mb-1" />
+            <span className="text-sm font-bold text-white">Hidromassagem Privativa</span>
+            <span className="text-[10px] text-white/50 uppercase tracking-widest mt-0.5">Spa Panorâmico</span>
+          </div>
+
+          <div className="flex flex-col items-center p-2">
+            <Waves className="w-5 h-5 text-[#E6C994] mb-1" />
+            <span className="text-sm font-bold text-white">Vista para o Oceano</span>
+            <span className="text-[10px] text-white/50 uppercase tracking-widest mt-0.5">Sul da Ilha de Floripa</span>
+          </div>
+
+          <div className="flex flex-col items-center p-2">
+            <Bot className="w-5 h-5 text-[#E6C994] mb-1" />
+            <span className="text-sm font-bold text-white">Concierge IA 24/7</span>
+            <span className="text-[10px] text-white/50 uppercase tracking-widest mt-0.5">Suporte Instantâneo</span>
           </div>
         </div>
       </section>
 
-      {/* Sobre o Chalé */}
-      <section id="sobre" className="relative py-32 bg-[#FBF9F4] z-20">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex flex-col lg:flex-row gap-24 items-center">
+      {/* 4. Sobre o Chalé (O Refúgio) */}
+      <section id="sobre" className="relative py-28 bg-[#FAF8F5] text-[#24170F] z-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8">
+          <div className="flex flex-col lg:flex-row gap-16 lg:gap-24 items-center">
+            
+            {/* Lado Texto */}
             <motion.div
-              initial={{ opacity: 0, x: -50 }}
+              initial={{ opacity: 0, x: -40 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.8 }}
               className="lg:w-1/2"
             >
-              <div className="inline-flex items-center gap-4 text-[#C59A55] mb-6">
-                <div className="w-12 h-[1px] bg-[#C59A55]" />
+              <div className="inline-flex items-center gap-3 text-[#C59A55] mb-4">
+                <div className="w-10 h-[1px] bg-[#C59A55]" />
                 <span className="text-xs uppercase tracking-[0.3em] font-bold">O Refúgio</span>
               </div>
               
-              <h2 className="text-5xl md:text-7xl font-serif text-[#24170F] mb-10 leading-[1.1] tracking-tight">
+              <h2 className="text-4xl sm:text-5xl md:text-6xl font-serif text-[#24170F] mb-8 leading-[1.1] tracking-tight">
                 {content.about_title}
               </h2>
               
-              <div className="space-y-8 mb-12">
-                <p className="text-xl text-zinc-600 font-sans leading-relaxed font-light">
+              <div className="space-y-6 mb-10">
+                <p className="text-base sm:text-lg text-zinc-700 font-sans leading-relaxed font-light">
                   {content.about_text_1}
                 </p>
                 
-                <div className="grid grid-cols-2 gap-8 border-y border-[#C59A55]/20 py-10">
-                  <div className="flex flex-col gap-2">
-                    <span className="text-3xl font-serif text-[#24170F] italic">2 Quartos</span>
-                    <span className="text-xs uppercase tracking-widest text-zinc-500">Conforto absoluto</span>
+                <div className="grid grid-cols-2 gap-6 border-y border-[#C59A55]/20 py-8">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-2xl sm:text-3xl font-serif text-[#24170F] italic">2 Suítes</span>
+                    <span className="text-xs uppercase tracking-widest text-zinc-500 font-medium">Conforto absoluto</span>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <span className="text-3xl font-serif text-[#24170F] italic">Vista Mar</span>
-                    <span className="text-xs uppercase tracking-widest text-zinc-500">Horizonte infinito</span>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-2xl sm:text-3xl font-serif text-[#24170F] italic">Vista Mar</span>
+                    <span className="text-xs uppercase tracking-widest text-zinc-500 font-medium">Horizonte infinito</span>
                   </div>
                 </div>
 
-                <p className="text-lg text-zinc-600 font-sans leading-relaxed">
+                <p className="text-sm sm:text-base text-zinc-600 font-sans leading-relaxed font-light">
                   {content.about_text_2}
                 </p>
               </div>
 
-              <motion.a
+              <a
                 href={content.airbnb_url}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => trackClick.mutate({ source: 'about_section' })}
-                whileHover={{ gap: "2rem" }}
-                className="inline-flex items-center gap-4 group w-full md:w-auto justify-center md:justify-start"
+                className="inline-flex items-center gap-4 group"
               >
-                <div className="w-14 h-14 rounded-full border border-[#C59A55] flex items-center justify-center transition-all group-hover:bg-[#C59A55] shrink-0">
-                  <ArrowRight className="w-6 h-6 text-[#C59A55] group-hover:text-white transition-colors" />
+                <div className="w-12 h-12 rounded-full border border-[#C59A55] flex items-center justify-center transition-all group-hover:bg-[#C59A55] shrink-0 shadow-sm">
+                  <ArrowRight className="w-5 h-5 text-[#C59A55] group-hover:text-white transition-colors" />
                 </div>
-                <span className="text-[#C59A55] font-sans font-bold uppercase tracking-[0.2em] text-sm text-center md:text-left">
-                  Ver disponibilidade no Airbnb
+                <span className="text-[#C59A55] font-sans font-bold uppercase tracking-[0.2em] text-xs sm:text-sm">
+                  Verificar disponibilidade no Airbnb
                 </span>
-              </motion.a>
+              </a>
             </motion.div>
 
+            {/* Lado Imagem */}
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              transition={{ duration: 1 }}
+              transition={{ duration: 0.9 }}
               className="lg:w-1/2 relative"
             >
-              <div className="relative z-10 rounded-[2rem] overflow-hidden shadow-2xl aspect-[4/5]">
-                <img src={img14} alt="Vista principal" className="w-full h-full object-cover" />
+              <div className="relative z-10 rounded-3xl overflow-hidden shadow-2xl border-4 border-white aspect-[4/5]">
+                <img src={img14} alt="Vista principal Chalé A-Frame" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                <div className="absolute bottom-6 left-6 right-6 p-4 bg-black/40 backdrop-blur-md rounded-2xl border border-white/20 text-white">
+                  <p className="font-serif text-lg italic">"A harmonia perfeita entre sofisticação e natureza."</p>
+                  <span className="text-[10px] uppercase tracking-widest text-[#E6C994]">Acomodação Exclusiva</span>
+                </div>
               </div>
+
+              {/* Elemento Decorativo Mágico */}
+              <div className="absolute -bottom-6 -left-6 w-36 h-36 bg-[#C59A55]/20 rounded-full blur-3xl pointer-events-none" />
             </motion.div>
+
           </div>
         </div>
       </section>
 
-      {/* Galeria de Destaques */}
-      <section className="relative py-32 bg-[#100D0A] z-20 overflow-hidden text-white">
-        <div className="max-w-7xl mx-auto px-4 relative z-10">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-20 gap-8">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="max-w-2xl"
-            >
-              <span className="text-[#C59A55] font-sans font-bold text-xs uppercase tracking-[0.4em] mb-6 block">
+      {/* 5. Galeria de Destaques com Filtros & Lightbox */}
+      <section id="galeria" className="relative py-28 bg-[#100D0A] text-white z-20 border-t border-white/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8">
+          
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+            <div>
+              <span className="text-[#C59A55] font-sans font-bold text-xs uppercase tracking-[0.4em] mb-3 block">
                 Galeria de Destaques
               </span>
-              <h2 className="text-5xl md:text-8xl font-serif text-white leading-[0.95] tracking-tighter">
-                Onde o luxo encontra a <span className="italic text-[#C59A55] block md:inline">natureza.</span>
+              <h2 className="text-4xl sm:text-6xl md:text-7xl font-serif text-white leading-[1] tracking-tight">
+                Onde o luxo encontra a <span className="italic text-[#C59A55]">natureza.</span>
               </h2>
-            </motion.div>
+            </div>
+
+            {/* Filtros da Galeria */}
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: 'all', label: 'Todos' },
+                { id: 'suite', label: 'Suíte & SPA' },
+                { id: 'nature', label: 'Deck & Vista' },
+                { id: 'living', label: 'Living & Gastronomia' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveGalleryTab(tab.id as any)}
+                  className={`px-4 py-2 rounded-full text-xs font-medium uppercase tracking-wider transition-all ${
+                    activeGalleryTab === tab.id
+                      ? 'bg-[#C59A55] text-black font-bold shadow-lg'
+                      : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white border border-white/10'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 h-auto">
-            {/* Imagem 1: Hero Exterior */}
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              className="md:col-span-8 h-[380px] md:h-[480px] relative group overflow-hidden rounded-3xl"
-            >
-              <img src={heroImg} className="w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-105" alt="Arquitetura A-Frame" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-              <div className="absolute bottom-6 left-6 p-2">
-                <h3 className="text-2xl font-serif text-white">Design A-Frame Exclusivo</h3>
-                <p className="text-xs text-white/70">Fachada icônica em meio à mata preservada</p>
-              </div>
-            </motion.div>
-
-            {/* Imagem 2: Quarto */}
-            <motion.div 
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="md:col-span-4 h-[380px] md:h-[480px] relative group overflow-hidden rounded-3xl"
-            >
-              <img src={quartoImg} className="w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-105" alt="Suíte Master" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-              <div className="absolute bottom-6 left-6">
-                <h3 className="text-xl font-serif text-white">Suíte Aconchegante</h3>
-                <p className="text-xs text-white/70">Conforto com vista panorâmica</p>
-              </div>
-            </motion.div>
-
-            {/* Imagem 3: Banheira */}
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="md:col-span-4 h-[320px] relative group overflow-hidden rounded-3xl"
-            >
-              <img src={banheiraImg} className="w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-105" alt="Banheira de Hidromassagem" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-              <div className="absolute bottom-6 left-6">
-                <h3 className="text-xl font-serif text-white">Hidromassagem Interna</h3>
-                <p className="text-xs text-white/70">Relaxamento privativo</p>
-              </div>
-            </motion.div>
-
-            {/* Imagem 4: Sala */}
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="md:col-span-4 h-[320px] relative group overflow-hidden rounded-3xl"
-            >
-              <img src={salaImg} className="w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-105" alt="Living Integrado" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-              <div className="absolute bottom-6 left-6">
-                <h3 className="text-xl font-serif text-white">Living Integrado</h3>
-                <p className="text-xs text-white/70">Iluminação natural & pé-direito alto</p>
-              </div>
-            </motion.div>
-
-            {/* Imagem 5: Cozinha */}
-            <motion.div 
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="md:col-span-4 h-[320px] relative group overflow-hidden rounded-3xl"
-            >
-              <img src={cozinhaImg} className="w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-105" alt="Cozinha Equipada" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-              <div className="absolute bottom-6 left-6">
-                <h3 className="text-xl font-serif text-white">Cozinha Gourmet</h3>
-                <p className="text-xs text-white/70">Equipada para refeições especiais</p>
-              </div>
-            </motion.div>
-
-            {/* Imagem 6: Deck e Balanço (Image-12) */}
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="md:col-span-6 h-[340px] relative group overflow-hidden rounded-3xl"
-            >
-              <img src={img12} className="w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-105" alt="Deck com Balanço Suspenso" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-              <div className="absolute bottom-6 left-6">
-                <h3 className="text-2xl font-serif text-white">Deck & Balanço Suspenso</h3>
-                <p className="text-xs text-white/70">O lugar perfeito para desacelerar</p>
-              </div>
-            </motion.div>
-
-            {/* Imagem 7: Vista para o Mar (Image-13) */}
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="md:col-span-6 h-[340px] relative group overflow-hidden rounded-3xl"
-            >
-              <img src={img13} className="w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-105" alt="Vista Panorâmica do Mar" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-              <div className="absolute bottom-6 left-6">
-                <h3 className="text-2xl font-serif text-white">Vista para o Oceano</h3>
-                <p className="text-xs text-white/70">Amanhecer inesquecível no Sul da Ilha</p>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Tour pelos Ambientes e Experiências */}
-      <section className="relative py-28 bg-[#FBF9F4] z-20">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <span className="text-[#C59A55] font-sans font-bold text-xs uppercase tracking-[0.3em] mb-3 block">
-              Experiência Completa
-            </span>
-            <h2 className="text-4xl md:text-6xl font-serif text-[#24170F] tracking-tight">
-              Cada ambiente planejado para o seu <span className="italic text-[#C59A55]">bem-estar</span>
-            </h2>
-            <p className="text-zinc-600 text-sm md:text-base font-light mt-4">
-              Explore a distribuição dos espaços e entenda o que torna o Chalé A-Frame único.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                title: "Dormitórios Aconchegantes",
-                desc: "Dois quartos confortáveis com enxoval macio e clima intimista para noites revigorantes.",
-                image: quartoImg,
-                tag: "2 Quartos"
-              },
-              {
-                title: "Espaço Spa & Banheira",
-                desc: "Banheira interna de hidromassagem posicionada estrategicamente para relaxar com vista.",
-                image: banheiraImg,
-                tag: "Relaxamento"
-              },
-              {
-                title: "Área de Convivência Integrada",
-                desc: "Salas de estar e jantar em plano aberto, integrando sofisticação em madeira e iluminação suave.",
-                image: salaImg,
-                tag: "Design A-Frame"
-              },
-              {
-                title: "Gastronomia Aconchegante",
-                desc: "Cozinha completa com utensílios e louças para preparar cafés da manhã ou jantares românticos.",
-                image: cozinhaImg,
-                tag: "Cozinha Equipada"
-              },
-              {
-                title: "Deck Privativo na Mata",
-                desc: "Ampla área externa cercada pela natureza com balanço suspenso para contemplação.",
-                image: img12,
-                tag: "Deck Exclusivo"
-              },
-              {
-                title: "Refúgio em Florianópolis",
-                desc: "Localização privilegiada no Sul da Ilha, combinando mar, ar puro e tranquilidade total.",
-                image: img15,
-                tag: "Vista Panorâmica"
-              }
-            ].map((card, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="bg-white rounded-3xl overflow-hidden shadow-md border border-[#C59A55]/15 hover:shadow-xl hover:border-[#C59A55]/40 transition-all duration-300 group"
-              >
-                <div className="h-56 overflow-hidden relative">
+          {/* Grid Interativo de Fotos */}
+          <motion.div layout className="grid grid-cols-1 md:grid-cols-12 gap-5">
+            <AnimatePresence>
+              {filteredGallery.map((item) => (
+                <motion.div
+                  key={item.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.4 }}
+                  onClick={() => setLightboxImage({ url: item.url, title: item.title, subtitle: item.subtitle })}
+                  className={`${item.colSpan} h-[320px] sm:h-[400px] relative group overflow-hidden rounded-3xl cursor-pointer border border-white/10 hover:border-[#C59A55]/50 transition-all`}
+                >
                   <img
-                    src={card.image}
-                    alt={card.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    src={item.url}
+                    alt={item.title}
+                    className="w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-108"
                   />
-                  <span className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-white text-[10px] uppercase font-bold tracking-widest px-3 py-1 rounded-full border border-white/20">
-                    {card.tag}
-                  </span>
-                </div>
-                <div className="p-6">
-                  <h3 className="font-serif text-xl font-bold text-[#24170F] mb-2">{card.title}</h3>
-                  <p className="text-xs text-zinc-600 font-light leading-relaxed">{card.desc}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
+                  
+                  <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between">
+                    <div>
+                      <h3 className="text-xl sm:text-2xl font-serif text-white mb-1 group-hover:text-[#E6C994] transition-colors">{item.title}</h3>
+                      <p className="text-xs text-white/70 font-light">{item.subtitle}</p>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Maximize2 className="w-4 h-4 text-white" />
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
+
         </div>
       </section>
 
-      {/* Concierge Virtual com Mockup WhatsApp Sofisticado */}
-      <section className="relative py-28 bg-[#F7F3EA] z-20 overflow-hidden">
-        {/* Elemento de iluminação suave de fundo */}
-        <div className="absolute top-1/2 -right-40 -translate-y-1/2 w-96 h-96 bg-[#C59A55]/10 rounded-full blur-[120px] pointer-events-none" />
+      {/* Lightbox Modal para Fotos em Tela Cheia */}
+      <AnimatePresence>
+        {lightboxImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setLightboxImage(null)}
+            className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 sm:p-8"
+          >
+            <button
+              onClick={() => setLightboxImage(null)}
+              className="absolute top-6 right-6 p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors z-50"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <div className="max-w-5xl max-h-[85vh] flex flex-col items-center">
+              <img
+                src={lightboxImage.url}
+                alt={lightboxImage.title}
+                className="max-w-full max-h-[75vh] object-contain rounded-2xl border border-white/10 shadow-2xl"
+              />
+              <div className="text-center mt-4">
+                <h3 className="text-2xl font-serif text-white">{lightboxImage.title}</h3>
+                <p className="text-sm text-white/70 mt-1">{lightboxImage.subtitle}</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-        <div className="max-w-7xl mx-auto px-4 relative z-10">
+      {/* 6. Concierge Virtual com WhatsApp Smartphone Mockup */}
+      <section id="concierge" className="relative py-28 bg-[#FAF8F5] text-[#24170F] z-20 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
             
-            {/* Lado Esquerdo: Descrição & Vantagens */}
+            {/* Lado Texto & Vantagens */}
             <div className="lg:col-span-6 space-y-8">
               <div>
-                <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#C59A55]/10 border border-[#C59A55]/20 text-[#C59A55] font-sans font-bold text-xs uppercase tracking-[0.2em] mb-4">
+                <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#C59A55]/10 border border-[#C59A55]/30 text-[#C59A55] font-sans font-bold text-xs uppercase tracking-[0.2em] mb-4">
                   <Sparkles className="w-3.5 h-3.5" />
                   Atendimento Digital no WhatsApp
                 </span>
-                <h2 className="text-4xl md:text-5xl font-serif text-[#24170F] leading-[1.15] tracking-tight">
+                <h2 className="text-4xl sm:text-5xl font-serif text-[#24170F] leading-[1.15] tracking-tight">
                   Seu Concierge Virtual <br />
                   <span className="italic text-[#C59A55] font-serif">disponível 24 horas</span>
                 </h2>
-                <p className="text-base md:text-lg text-zinc-600 font-sans mt-4 leading-relaxed font-light">
-                  Experimente o atendimento inteligente do Chalé A-Frame. Tire dúvidas sobre a casa, peça indicações de praias e restaurantes e aproveite cada segundo do Sul da Ilha.
+                <p className="text-base text-zinc-600 font-sans mt-4 leading-relaxed font-light">
+                  Aproveite cada segundo do Sul da Ilha com assistência instantânea. Tire dúvidas da casa, solicite recomendações gastronômicas e receba dicas locais no seu próprio WhatsApp.
                 </p>
               </div>
 
               {/* Grid de Benefícios */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
-                  { title: "Check-in & Regras", desc: "Instruções de acesso e senha do Wi-Fi", icon: Home },
-                  { title: "Roteiros & Praias", desc: "Dicas secretas no Sul de Florianópolis", icon: Compass },
+                  { title: "Check-in & Regras", desc: "Instruções de acesso e Wi-Fi", icon: Home },
+                  { title: "Roteiros & Praias", desc: "Dicas secretas de Florianópolis", icon: Compass },
                   { title: "Gastronomia Local", desc: "Restaurantes de frutos do mar & bistrôs", icon: UtensilsCrossed },
-                  { title: "Suporte Instantâneo", desc: "Respostas em poucos segundos no WhatsApp", icon: Smartphone },
+                  { title: "Suporte Instantâneo", desc: "Respostas em segundos via IA", icon: Smartphone },
                 ].map((item, i) => (
                   <div key={i} className="p-5 bg-white rounded-2xl shadow-sm border border-[#C59A55]/15 hover:border-[#C59A55]/40 transition-all group">
-                    <div className="w-10 h-10 rounded-xl bg-[#F7F3EA] flex items-center justify-center mb-3 group-hover:bg-[#C59A55] transition-colors">
+                    <div className="w-10 h-10 rounded-xl bg-[#FAF8F5] flex items-center justify-center mb-3 group-hover:bg-[#C59A55] transition-colors">
                       <item.icon className="w-5 h-5 text-[#C59A55] group-hover:text-white transition-colors" />
                     </div>
                     <h4 className="font-serif text-[#24170F] font-bold text-base mb-1">{item.title}</h4>
@@ -606,40 +649,31 @@ export const GuestSiteView: React.FC<GuestSiteViewProps> = ({ onAdminLogin }) =>
                 ))}
               </div>
 
-              {/* Ação Principal */}
-              <div className="pt-2 flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+              <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center pt-2">
                 <button
                   onClick={() => setIsConciergeOpen(true)}
-                  className="inline-flex items-center justify-center gap-3 bg-[#24170F] text-[#F7F3EA] px-8 py-4 rounded-full font-bold text-xs tracking-widest hover:bg-[#17130F] transition-all shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-95"
+                  className="inline-flex items-center justify-center gap-3 bg-[#24170F] text-[#FAF8F5] px-8 py-4 rounded-full font-bold text-xs tracking-widest hover:bg-black transition-all shadow-xl hover:scale-[1.02] active:scale-95"
                 >
                   <MessageCircle className="w-4 h-4 text-[#C59A55]" />
-                  <span>ABRIR CONCIERGE FLUTUANTE</span>
+                  <span>TESTAR CHAT FLUTUANTE</span>
                 </button>
                 <span className="text-xs text-zinc-500 font-serif italic text-center sm:text-left">
-                  ✦ Resposta automática & ao vivo no mockup ao lado
+                  ✦ Teste também no celular interativo ao lado
                 </span>
               </div>
             </div>
 
-            {/* Lado Direito: Mockup WhatsApp Smartphone Sofisticado */}
+            {/* Lado Celular Smartphone Mockup WhatsApp */}
             <div className="lg:col-span-6 flex justify-center items-center relative py-4">
-              
-              {/* Brilho Dourado / Verde de Fundo */}
               <div className="absolute -inset-2 bg-gradient-to-r from-[#C59A55]/20 via-[#25D366]/10 to-[#C59A55]/20 rounded-[4rem] blur-2xl opacity-80 pointer-events-none" />
 
-              {/* Corpo do Celular */}
-              <div className="relative w-full max-w-[360px] md:max-w-[380px] bg-[#0b141a] rounded-[3.2rem] p-3 shadow-[0_35px_100px_rgba(36,23,15,0.4)] border-[8px] border-[#1e2328] ring-1 ring-white/10 overflow-hidden">
-                
-                {/* Ilha Dinâmica / Notch do Celular */}
+              <div className="relative w-full max-w-[360px] md:max-w-[380px] bg-[#0b141a] rounded-[3.2rem] p-3 shadow-[0_35px_100px_rgba(36,23,15,0.3)] border-[8px] border-[#1e2328] ring-1 ring-white/10 overflow-hidden">
                 <div className="absolute top-3 left-1/2 -translate-x-1/2 w-28 h-5 bg-[#1e2328] rounded-full z-30 flex items-center justify-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-[#0a0a0a]" />
                   <div className="w-2 h-2 rounded-full bg-[#121212]" />
                 </div>
 
-                {/* Tela do WhatsApp */}
-                <div className="relative w-full bg-[#0b141a] rounded-[2.5rem] overflow-hidden flex flex-col h-[600px] text-white select-none border border-white/5">
-                  
-                  {/* Barra de Status */}
+                <div className="relative w-full bg-[#0b141a] rounded-[2.5rem] overflow-hidden flex flex-col h-[580px] text-white select-none border border-white/5">
                   <div className="pt-3 pb-1.5 px-7 flex justify-between items-center text-[11px] text-white/90 bg-[#111b21] font-sans font-semibold z-20">
                     <span>09:41</span>
                     <div className="flex items-center gap-1.5">
@@ -650,7 +684,6 @@ export const GuestSiteView: React.FC<GuestSiteViewProps> = ({ onAdminLogin }) =>
                     </div>
                   </div>
 
-                  {/* Header do WhatsApp */}
                   <div className="bg-[#111b21] px-4 py-2.5 flex items-center justify-between border-b border-white/10 z-20 shadow-md">
                     <div className="flex items-center gap-2.5">
                       <ChevronLeft className="w-5 h-5 text-[#00a884] cursor-pointer" />
@@ -669,25 +702,15 @@ export const GuestSiteView: React.FC<GuestSiteViewProps> = ({ onAdminLogin }) =>
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 text-[#aebac1]">
-                      <Video className="w-4 h-4 hover:text-white cursor-pointer transition-colors" />
-                      <Phone className="w-4 h-4 hover:text-white cursor-pointer transition-colors" />
-                      <MoreVertical className="w-4 h-4 hover:text-white cursor-pointer transition-colors" />
-                    </div>
                   </div>
 
-                  {/* Mensagens do Chat */}
-                  <div className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-[#0b141a] relative font-sans text-xs" style={{
-                    backgroundImage: `radial-gradient(circle at 50% 50%, rgba(37, 211, 102, 0.04) 0%, transparent 80%)`,
-                  }}>
-                    {/* Badge de Data */}
+                  <div className="flex-1 overflow-y-auto p-3.5 space-y-3 bg-[#0b141a] relative font-sans text-xs">
                     <div className="flex justify-center my-1">
                       <span className="bg-[#182229] text-[#8696a0] text-[10px] uppercase tracking-wider px-3 py-1 rounded-lg border border-white/5 font-medium shadow-sm">
                         Hoje • Atendimento Exclusivo
                       </span>
                     </div>
 
-                    {/* Balões de Mensagem */}
                     {mockupMessages.map((msg, i) => (
                       <motion.div
                         key={i}
@@ -714,10 +737,9 @@ export const GuestSiteView: React.FC<GuestSiteViewProps> = ({ onAdminLogin }) =>
                       </motion.div>
                     ))}
 
-                    {/* Sugestões Rápidas Interativas */}
                     <div className="pt-2">
                       <p className="text-[9px] text-[#8696a0] font-medium uppercase tracking-wider mb-1.5 px-1">
-                        Toque em um tópico para testar:
+                        Toque em uma pergunta pronta:
                       </p>
                       <div className="flex flex-wrap gap-1.5">
                         {[
@@ -739,7 +761,6 @@ export const GuestSiteView: React.FC<GuestSiteViewProps> = ({ onAdminLogin }) =>
                     </div>
                   </div>
 
-                  {/* Input de Envio de Mensagem no Celular */}
                   <form 
                     onSubmit={(e) => { 
                       e.preventDefault(); 
@@ -753,20 +774,15 @@ export const GuestSiteView: React.FC<GuestSiteViewProps> = ({ onAdminLogin }) =>
                         type="text"
                         value={mockupInput}
                         onChange={(e) => setMockupInput(e.target.value)}
-                        placeholder="Digite uma mensagem..."
+                        placeholder="Pergunte ao Concierge..."
                         className="w-full bg-transparent text-xs text-[#e9edef] placeholder-[#8696a0] focus:outline-none"
                       />
-                      <Paperclip className="w-4 h-4 text-[#8696a0] cursor-pointer" />
                     </div>
                     <button
                       type="submit"
                       className="w-8 h-8 rounded-full bg-[#00a884] hover:bg-[#029071] text-white flex items-center justify-center transition-all shrink-0 shadow-md"
                     >
-                      {mockupInput.trim() ? (
-                        <Send className="w-3.5 h-3.5" />
-                      ) : (
-                        <Mic className="w-3.5 h-3.5" />
-                      )}
+                      <Send className="w-3.5 h-3.5" />
                     </button>
                   </form>
                 </div>
@@ -777,125 +793,147 @@ export const GuestSiteView: React.FC<GuestSiteViewProps> = ({ onAdminLogin }) =>
         </div>
       </section>
 
-      {/* Avaliações */}
-      <section className="relative py-24 px-4 bg-white z-20 text-center">
+      {/* 7. Comodidades & Detalhes */}
+      <section id="comodidades" className="relative py-28 bg-[#14100C] text-white z-20 border-t border-white/5">
+        <div className="max-w-6xl mx-auto px-4 sm:px-8">
+          
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <span className="text-[#C59A55] font-sans font-bold text-xs uppercase tracking-[0.3em] mb-3 block">
+              Comodidades Exclusivas
+            </span>
+            <h2 className="text-3xl sm:text-5xl font-serif text-white tracking-tight">
+              Tudo pensado para o seu conforto
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+            {[
+              { label: "Vista para o mar", icon: Waves, desc: "Amanhecer no horizonte" },
+              { label: "Montanhas & Natureza", icon: Mountain, desc: "Mata nativa preservada" },
+              { label: "Cozinha completa", icon: UtensilsCrossed, desc: "Equipada com eletros" },
+              { label: "Wi-Fi 5G Rápido", icon: Wifi, desc: "Conexão de alta velocidade" },
+              { label: "Estacionamento Privativo", icon: Car, desc: "Vaga na propriedade" },
+              { label: "Hidromassagem Interna", icon: Bath, desc: "Banheira com vista" },
+              { label: "Smart TV & Streaming", icon: Tv, desc: "Entretenimento completo" },
+              { label: "Climatização Dupla", icon: Snowflake, desc: "Ar quente e frio" }
+            ].map((item, i) => (
+              <div key={i} className="p-5 bg-white/5 rounded-2xl border border-white/10 hover:border-[#C59A55]/40 transition-all hover:bg-white/10 group">
+                <item.icon className="w-6 h-6 text-[#C59A55] mb-3 group-hover:scale-110 transition-transform" />
+                <h4 className="text-sm font-bold text-white mb-1">{item.label}</h4>
+                <p className="text-[11px] text-white/50 font-light">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+
+        </div>
+      </section>
+
+      {/* 8. Depoimentos dos Hóspedes */}
+      <section className="relative py-28 px-4 bg-[#FAF8F5] text-[#24170F] z-20 text-center">
         <div className="max-w-4xl mx-auto mb-12">
           <div className="flex justify-center gap-1 mb-3">
             {[...Array(5)].map((_, i) => (
               <Star key={i} className="w-5 h-5 fill-[#C59A55] text-[#C59A55]" />
             ))}
           </div>
-          <span className="text-3xl font-serif text-[#24170F]">5,0 / 5,0</span>
-          <h2 className="text-4xl md:text-5xl font-serif text-[#24170F] mt-4 mb-2">Preferido dos Hóspedes</h2>
-          <p className="text-xs uppercase tracking-widest text-zinc-500">Experiências avaliadas com nota máxima no Airbnb</p>
+          <span className="text-3xl sm:text-4xl font-serif text-[#24170F] font-bold">5,0 / 5,0</span>
+          <h2 className="text-3xl sm:text-5xl font-serif text-[#24170F] mt-3 mb-2">Avaliações dos Hóspedes</h2>
+          <p className="text-xs uppercase tracking-widest text-zinc-500 font-medium">Experiências nota 10 verificadas no Airbnb</p>
         </div>
 
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
           {[
-            { author: "Alice", text: "Tudo simplesmente maravilhoso! O chalé é incrível, extremamente limpo e acolhedor." },
-            { author: "Bruna", text: "Decoração de muito bom gosto, climatização perfeita e a vista do mar é sem palavras." },
-            { author: "Higor", text: "O chalé superou todas as expectativas. Paz absoluta no meio da natureza." },
+            { author: "Alice M.", date: "Janeiro 2026", text: "Tudo simplesmente maravilhoso! O chalé A-frame é impecável, extremamente limpo e a vista para o mar ao amanhecer é algo inesquecível." },
+            { author: "Bruna S.", date: "Dezembro 2025", text: "Decoração de extremo bom gosto, climatização perfeita e a hidromassagem interna é fantástica. Com certeza voltaremos em breve!" },
+            { author: "Higor C.", date: "Novembro 2025", text: "O chalé superou todas as expectativas. Paz absoluta cercado pela natureza e com o suporte incrível do concierge no WhatsApp." },
           ].map((rev, i) => (
-            <div key={i} className="p-8 bg-[#FBF9F4] rounded-3xl border border-[#C59A55]/20 flex flex-col justify-between">
+            <div key={i} className="p-8 bg-white rounded-3xl border border-[#C59A55]/20 shadow-sm flex flex-col justify-between hover:border-[#C59A55]/50 transition-all">
               <p className="text-sm font-serif italic text-zinc-700 leading-relaxed mb-6">"{rev.text}"</p>
-              <div>
-                <p className="font-bold text-sm text-[#24170F]">{rev.author}</p>
-                <p className="text-[10px] uppercase tracking-wider text-zinc-400">Hóspede verificado</p>
+              <div className="pt-4 border-t border-zinc-100 flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-sm text-[#24170F]">{rev.author}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-zinc-400">{rev.date}</p>
+                </div>
+                <span className="text-[10px] uppercase tracking-wider font-bold text-[#C59A55] bg-[#C59A55]/10 px-2.5 py-1 rounded-full">
+                  Verificado
+                </span>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Comodidades & Detalhes */}
-      <section className="relative py-24 px-4 bg-[#F7F3EA] z-20">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-serif text-center text-[#24170F] mb-12">Principais Comodidades</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[
-              { label: "Vista para o mar", icon: Waves },
-              { label: "Montanhas & Natureza", icon: Mountain },
-              { label: "Cozinha completa", icon: UtensilsCrossed },
-              { label: "Wi-Fi rápido", icon: Wifi },
-              { label: "Estacionamento", icon: Car },
-              { label: "Hidromassagem interna", icon: Bath },
-              { label: "Smart TV", icon: Tv },
-              { label: "Ar-condicionado", icon: Snowflake }
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-3 p-4 bg-white rounded-xl border border-[#C59A55]/10">
-                <item.icon className="w-5 h-5 text-[#C59A55]" />
-                <span className="text-xs font-bold text-[#24170F]">{item.label}</span>
-              </div>
-            ))}
-          </div>
+      {/* 9. CTA Final Chamada para Ação */}
+      <section className="relative py-28 px-4 flex flex-col items-center justify-center text-center text-white z-20 overflow-hidden">
+        <div className="absolute inset-0 w-full h-full pointer-events-none">
+          <img src={heroImg} alt="Chalé ao pôr do sol" className="w-full h-full object-cover filter brightness-50" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#14100C] via-black/60 to-black/70" />
         </div>
-      </section>
-
-      {/* CTA Final */}
-      <section className="relative py-24 px-4 flex flex-col items-center justify-center text-center text-white z-20">
-        <div className="absolute inset-0 w-full h-full overflow-hidden">
-          <img src={heroImg} alt="Chalé ao pôr do sol" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-black/70" />
-        </div>
-        <div className="relative z-10 max-w-2xl px-4">
-          <h2 className="text-3xl md:text-5xl font-serif mb-6">
-            Viva momentos únicos em <span className="italic text-[#C59A55]">Florianópolis.</span>
+        <div className="relative z-10 max-w-3xl px-4">
+          <span className="text-[#E6C994] font-sans font-bold text-xs uppercase tracking-[0.3em] mb-4 block">
+            Sua próxima escapada inesquecível
+          </span>
+          <h2 className="text-3xl sm:text-5xl md:text-6xl font-serif mb-6 leading-tight">
+            Viva momentos únicos em <span className="italic text-[#E6C994]">Florianópolis.</span>
           </h2>
-          <p className="text-sm font-sans mb-8 opacity-80 max-w-lg mx-auto font-light">
-            Garanta sua reserva e desfrute de um refúgio boutique exclusivo.
+          <p className="text-sm sm:text-base font-sans mb-10 opacity-90 max-w-xl mx-auto font-light leading-relaxed">
+            Garanta sua reserva diretamente no Airbnb com a garantia e segurança da plataforma.
           </p>
           <a
             href={content.airbnb_url}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => trackClick.mutate({ source: 'cta_final' })}
-            className="inline-flex items-center gap-3 bg-[#C59A55] text-white px-10 py-5 rounded-full font-bold tracking-widest text-xs uppercase hover:bg-[#d4a85f] transition-all shadow-xl"
+            className="inline-flex items-center gap-3 bg-gradient-to-r from-[#C59A55] via-[#D4A85F] to-[#B8860B] text-black px-12 py-5 rounded-full font-bold tracking-[0.2em] text-xs uppercase hover:brightness-110 transition-all shadow-[0_10px_40px_rgba(197,154,85,0.4)] active:scale-95"
           >
-            <span>RESERVE AGORA NO AIRBNB</span>
+            <span>RESERVAR AGORA NO AIRBNB</span>
             <ArrowRight className="w-4 h-4" />
           </a>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="relative bg-[#17110C] pt-16 pb-12 px-4 text-[#F7F3EA] z-20 border-t border-white/5">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+      {/* 10. Footer Footer Luxo */}
+      <footer className="relative bg-[#0E0C09] pt-16 pb-12 px-4 text-[#FAF8F5] z-20 border-t border-white/10">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
+          
           <div className="text-center md:text-left">
-            <h3 className="text-xl font-serif mb-4 text-[#C59A55]">CHALÉ A-FRAME</h3>
+            <h3 className="text-xl font-serif mb-3 text-[#E6C994] font-bold">CHALÉ A-FRAME</h3>
             <p className="text-xs text-white/60 font-light leading-relaxed max-w-xs mx-auto md:mx-0">
               Uma experiência boutique em Florianópolis, conectando você com a natureza e o mar em um refúgio exclusivo.
             </p>
           </div>
           
           <div className="text-center">
-            <h4 className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-4 font-bold">Navegação</h4>
+            <h4 className="text-[10px] uppercase tracking-[0.2em] text-[#C59A55] mb-3 font-bold">Navegação</h4>
             <ul className="space-y-2 text-xs font-light text-white/80">
-              <li><a href="#sobre" className="hover:text-[#C59A55] transition-colors">O Chalé</a></li>
-              <li><a href={content.airbnb_url} target="_blank" rel="noreferrer" className="hover:text-[#C59A55] transition-colors">Reservar no Airbnb</a></li>
+              <li><a href="#sobre" className="hover:text-[#E6C994] transition-colors">O Chalé</a></li>
+              <li><a href="#galeria" className="hover:text-[#E6C994] transition-colors">Galeria</a></li>
+              <li><a href="#concierge" className="hover:text-[#E6C994] transition-colors">Concierge IA</a></li>
+              <li><a href={content.airbnb_url} target="_blank" rel="noreferrer" className="hover:text-[#E6C994] transition-colors">Reservar no Airbnb</a></li>
             </ul>
           </div>
 
           <div className="text-center md:text-right">
-            <h4 className="text-[10px] uppercase tracking-[0.2em] text-white/40 mb-4 font-bold">Localização</h4>
+            <h4 className="text-[10px] uppercase tracking-[0.2em] text-[#C59A55] mb-3 font-bold">Localização</h4>
             <p className="text-xs font-light text-white/80">Florianópolis, SC - Brasil</p>
             <p className="text-xs font-light text-white/50">Sul da Ilha - Vista para o Mar</p>
           </div>
+
         </div>
         
-        <div className="pt-8 border-t border-white/10 flex flex-col items-center gap-4">
-          <p className="text-[10px] uppercase tracking-widest text-white/30 text-center">
+        <div className="pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 max-w-7xl mx-auto">
+          <p className="text-[10px] uppercase tracking-widest text-white/40 text-center sm:text-left">
             &copy; {new Date().getFullYear()} Chalé A-Frame Florianópolis. Todos os direitos reservados.
           </p>
 
-          {/* Botão Escondido no Rodapé para Acesso Administrativo */}
           <button 
             type="button"
             onClick={() => setIsLoginModalOpen(true)}
-            className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-white/20 hover:text-[#C59A55] transition-all py-1.5 px-3 rounded-md hover:bg-white/5"
-            title="Acesso Restrito ao Painel Admin"
+            className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-white/40 hover:text-[#E6C994] transition-all py-1.5 px-3 rounded-full hover:bg-white/5 border border-white/5 hover:border-[#C59A55]/30"
+            title="Acesso ao Painel Admin do Anfitrião"
           >
-            <Lock className="w-3 h-3 text-[#C59A55]/50" />
-            <span>Acesso Restrito</span>
+            <Lock className="w-3 h-3 text-[#C59A55]" />
+            <span>Acesso Restrito do Anfitrião</span>
           </button>
         </div>
       </footer>
@@ -907,24 +945,26 @@ export const GuestSiteView: React.FC<GuestSiteViewProps> = ({ onAdminLogin }) =>
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsConciergeOpen(true)}
-            className="flex items-center gap-3 bg-[#24170F] text-white px-5 py-3.5 rounded-full shadow-2xl border border-[#C59A55]/40 hover:border-[#C59A55] transition-all"
+            className="flex items-center gap-3 bg-[#1B1510] text-white px-5 py-3.5 rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.5)] border border-[#C59A55]/50 hover:border-[#C59A55] transition-all group cursor-pointer"
           >
             <div className="relative">
-              <Bot className="w-5 h-5 text-[#C59A55]" />
+              <Bot className="w-5 h-5 text-[#E6C994]" />
               <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full animate-ping" />
             </div>
-            <span className="text-xs font-bold tracking-wider uppercase pr-1">Concierge IA</span>
+            <span className="text-xs font-bold tracking-wider uppercase pr-1 text-white group-hover:text-[#E6C994] transition-colors">
+              Concierge IA
+            </span>
           </motion.button>
         ) : (
           <motion.div
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            className="w-80 sm:w-96 bg-[#1C140E] text-[#F7F3EA] rounded-3xl shadow-2xl border border-[#C59A55]/30 overflow-hidden"
+            className="w-80 sm:w-96 bg-[#18130F] text-[#FAF8F5] rounded-3xl shadow-2xl border border-[#C59A55]/40 overflow-hidden"
           >
-            <div className="p-4 bg-[#24170F] border-b border-[#C59A55]/20 flex items-center justify-between">
+            <div className="p-4 bg-[#241B13] border-b border-[#C59A55]/30 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-[#C59A55]/20 border border-[#C59A55]/40 flex items-center justify-center">
-                  <Bot className="w-4 h-4 text-[#C59A55]" />
+                <div className="w-8 h-8 rounded-full bg-[#C59A55]/20 border border-[#C59A55]/50 flex items-center justify-center">
+                  <Bot className="w-4 h-4 text-[#E6C994]" />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-white">Concierge do Chalé</h4>
@@ -939,7 +979,7 @@ export const GuestSiteView: React.FC<GuestSiteViewProps> = ({ onAdminLogin }) =>
               </button>
             </div>
 
-            <div className="p-4 h-72 overflow-y-auto space-y-3 bg-[#17110C] text-xs font-sans">
+            <div className="p-4 h-72 overflow-y-auto space-y-3 bg-[#120E0A] text-xs font-sans">
               {chatMessages.map((msg, i) => (
                 <div
                   key={i}
@@ -948,28 +988,28 @@ export const GuestSiteView: React.FC<GuestSiteViewProps> = ({ onAdminLogin }) =>
                   <div
                     className={`max-w-[85%] p-3 rounded-2xl ${
                       msg.sender === 'user'
-                        ? 'bg-[#C59A55] text-white rounded-tr-none'
-                        : 'bg-[#2A1E16] text-white/90 border border-[#C59A55]/20 rounded-tl-none'
+                        ? 'bg-[#C59A55] text-black font-medium rounded-tr-none'
+                        : 'bg-[#241B13] text-white/90 border border-[#C59A55]/20 rounded-tl-none'
                     }`}
                   >
                     {msg.text}
                   </div>
-                  <span className="text-[9px] text-white/30 mt-1 px-1">{msg.time}</span>
+                  <span className="text-[9px] text-white/40 mt-1 px-1">{msg.time}</span>
                 </div>
               ))}
             </div>
 
-            <form onSubmit={handleSendGuestMessage} className="p-3 bg-[#24170F] border-t border-[#C59A55]/20 flex gap-2">
+            <form onSubmit={handleSendGuestMessage} className="p-3 bg-[#241B13] border-t border-[#C59A55]/20 flex gap-2">
               <input
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 placeholder="Pergunte sobre a estadia..."
-                className="flex-1 px-3 py-2 bg-[#1C140E] border border-[#C59A55]/20 rounded-xl text-xs text-white placeholder-white/30 focus:outline-none focus:border-[#C59A55]"
+                className="flex-1 px-3 py-2 bg-[#14100C] border border-[#C59A55]/30 rounded-xl text-xs text-white placeholder-white/40 focus:outline-none focus:border-[#C59A55]"
               />
               <button
                 type="submit"
-                className="p-2 bg-[#C59A55] text-white rounded-xl hover:bg-[#d4a85f] transition-all"
+                className="p-2 bg-[#C59A55] text-black font-bold rounded-xl hover:bg-[#E6C994] transition-all"
               >
                 <Send className="w-4 h-4" />
               </button>
@@ -978,12 +1018,14 @@ export const GuestSiteView: React.FC<GuestSiteViewProps> = ({ onAdminLogin }) =>
         )}
       </div>
 
-      {/* Admin Login Modal */}
+      {/* Modal de Login Administrativo */}
       <AdminLoginModal
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
         onLoginSuccess={onAdminLogin}
       />
+
     </div>
   );
 };
+

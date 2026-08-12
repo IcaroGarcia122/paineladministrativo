@@ -52,7 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, onL
       {mobileOpen && (
         <div
           id="sidebar-mobile-backdrop"
-          className="fixed inset-0 bg-zinc-900/40 backdrop-blur-xs z-40 lg:hidden"
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -60,15 +60,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, onL
       {/* Sidebar container */}
       <aside
         id="sidebar-main"
-        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-white border-r border-zinc-200/80 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-[#14100C] border-r border-[#C59A55]/20 flex flex-col justify-between transition-transform duration-300 ease-in-out lg:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div>
           {/* Property Header Branding */}
-          <div id="sidebar-header" className="p-5 border-b border-zinc-100">
+          <div id="sidebar-header" className="p-5 border-b border-[#C59A55]/15">
             <div className="flex items-center gap-3">
-              <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-xs border border-zinc-200/60 bg-zinc-100 flex-shrink-0">
+              <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-md border border-[#C59A55]/30 bg-[#1A1612] flex-shrink-0">
                 <img
                   src={property.logoUrl}
                   alt={property.name}
@@ -77,12 +77,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, onL
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <h1 className="text-base font-semibold text-zinc-900 truncate tracking-tight">
+                <h1 className="text-base font-serif font-bold text-[#FBF9F4] truncate tracking-tight">
                   {property.name}
                 </h1>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-xs font-medium text-emerald-700">Site ativo</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-xs font-medium text-emerald-400">Site ativo</span>
                 </div>
               </div>
             </div>
@@ -94,13 +94,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, onL
                 setIsLandingModalOpen(true);
                 setMobileOpen(false);
               }}
-              className="mt-4 w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-zinc-700 bg-zinc-50 hover:bg-zinc-100/80 rounded-lg border border-zinc-200/80 transition-all cursor-pointer group"
+              className="mt-4 w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-[#FAF8F5]/80 bg-[#1A1612] hover:bg-[#241E18] rounded-lg border border-[#C59A55]/20 hover:border-[#C59A55]/50 transition-all cursor-pointer group"
             >
               <span className="flex items-center gap-2 truncate">
-                <Globe className="w-3.5 h-3.5 text-rose-500" />
+                <Globe className="w-3.5 h-3.5 text-[#C59A55]" />
                 <span className="truncate">{property.customDomain}</span>
               </span>
-              <ExternalLink className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-700 transition-colors" />
+              <ExternalLink className="w-3.5 h-3.5 text-zinc-500 group-hover:text-[#E6C994] transition-colors" />
             </button>
           </div>
 
@@ -119,25 +119,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, onL
                   }}
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-rose-50/80 text-rose-600 font-semibold shadow-xs'
-                      : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50'
+                      ? 'bg-[#C59A55]/15 text-[#E6C994] font-semibold border border-[#C59A55]/30 shadow-xs'
+                      : 'text-zinc-400 hover:text-white hover:bg-[#1A1612]'
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <Icon
                       className={`w-4 h-4 transition-colors ${
-                        isActive ? 'text-rose-500' : 'text-zinc-400 group-hover:text-zinc-600'
+                        isActive ? 'text-[#C59A55]' : 'text-zinc-500 group-hover:text-zinc-300'
                       }`}
                     />
                     <span>{item.label}</span>
                   </div>
 
                   {item.badge ? (
-                    <span className="px-2 py-0.5 text-[10px] font-semibold bg-rose-100 text-rose-700 rounded-full border border-rose-200">
+                    <span className="px-2 py-0.5 text-[10px] font-semibold bg-[#C59A55]/20 text-[#E6C994] rounded-full border border-[#C59A55]/30">
                       {item.badge}
                     </span>
                   ) : isActive ? (
-                    <ChevronRight className="w-3.5 h-3.5 text-rose-500" />
+                    <ChevronRight className="w-3.5 h-3.5 text-[#C59A55]" />
                   ) : null}
                 </button>
               );
@@ -146,24 +146,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen, onL
         </div>
 
         {/* Footer info & Host profile */}
-        <div id="sidebar-footer" className="p-4 border-t border-zinc-100 bg-zinc-50/50 space-y-3">
+        <div id="sidebar-footer" className="p-4 border-t border-[#C59A55]/15 bg-[#120F0C] space-y-3">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-rose-500 text-white font-semibold flex items-center justify-center text-sm shadow-xs">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#C59A55] to-[#B8860B] text-black font-extrabold flex items-center justify-center text-sm shadow-md">
               Í
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-zinc-900 truncate">Ícaro (Anfitrião)</div>
+              <div className="text-sm font-semibold text-[#FBF9F4] truncate">Ícaro (Anfitrião)</div>
               <div className="text-xs text-zinc-500 truncate">icaro@villadopoente.com</div>
             </div>
-            <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
           </div>
 
           {onLogout && (
             <button
               onClick={onLogout}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-zinc-700 hover:text-rose-700 bg-white hover:bg-rose-50 rounded-lg border border-zinc-200 transition-all cursor-pointer shadow-2xs"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-zinc-300 hover:text-white bg-[#1A1612] hover:bg-[#241E18] rounded-lg border border-[#C59A55]/30 hover:border-[#C59A55] transition-all cursor-pointer shadow-xs"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut className="w-3.5 h-3.5 text-[#C59A55]" />
               <span>Sair / Voltar ao Site</span>
             </button>
           )}

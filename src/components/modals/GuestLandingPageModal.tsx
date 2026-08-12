@@ -28,6 +28,7 @@ import {
   Compass,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { findBestKnowledgeMatch } from '../../utils/concierge';
 
 export const GuestLandingPageModal: React.FC = () => {
   const {
@@ -88,13 +89,7 @@ export const GuestLandingPageModal: React.FC = () => {
     setChatInput('');
 
     setTimeout(() => {
-      const lower = userText.toLowerCase();
-      const match = knowledgeBase.find(
-        (k) =>
-          k.question.toLowerCase().includes(lower) ||
-          k.answer.toLowerCase().includes(lower) ||
-          lower.split(' ').some((w) => w.length > 3 && k.question.toLowerCase().includes(w))
-      );
+      const match = findBestKnowledgeMatch(userText, knowledgeBase);
 
       let botResponse = '';
       if (match) {

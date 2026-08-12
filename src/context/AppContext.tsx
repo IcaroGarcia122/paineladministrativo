@@ -55,6 +55,7 @@ interface AppContextType {
   updateConcierge: (data: Partial<ConciergeSettings>) => void;
   knowledgeBase: KnowledgeItem[];
   addKnowledgeItem: (item: Omit<KnowledgeItem, 'id' | 'updatedAt'>) => void;
+  updateKnowledgeItem: (id: string, item: Partial<KnowledgeItem>) => void;
   deleteKnowledgeItem: (id: string) => void;
   automations: Automation[];
   updateAutomation: (id: string, data: Partial<Automation>) => void;
@@ -187,6 +188,61 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem(`${STORAGE_KEY}_blockedDates`, JSON.stringify(blockedDates));
   }, [blockedDates]);
 
+  // Sync Knowledge Base, Concierge Settings, Stays, and Automations with Supabase on mount
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchFromSupabase() {
+      try {
+        const [kbRes, concRes, staysRes, autoRes] = await Promise.all([
+          fetch('/api/knowledge-base'),
+          fetch('/api/concierge'),
+          fetch('/api/stays'),
+          fetch('/api/automations'),
+        ]);
+
+        if (kbRes.ok) {
+          const kbData = await kbRes.json();
+          if (Array.isArray(kbData) && kbData.length > 0 && isMounted) {
+            setKnowledgeBase(kbData);
+          }
+        }
+
+        if (concRes.ok) {
+          const concData = await concRes.json();
+          if (concData && isMounted) {
+            setConcierge((prev) => ({
+              ...prev,
+              name: concData.name || prev.name,
+              welcomeMessage: concData.welcome_message || prev.welcomeMessage,
+              enabled: concData.enabled ?? prev.enabled,
+              tone: concData.tone || prev.tone,
+            }));
+          }
+        }
+
+        if (staysRes.ok) {
+          const staysData = await staysRes.json();
+          if (Array.isArray(staysData) && staysData.length > 0 && isMounted) {
+            setStays(staysData);
+          }
+        }
+
+        if (autoRes.ok) {
+          const autoData = await autoRes.json();
+          if (Array.isArray(autoData) && autoData.length > 0 && isMounted) {
+            setAutomations(autoData);
+          }
+        }
+      } catch (err) {
+        console.warn('Initial Supabase sync fetch error:', err);
+      }
+    }
+    fetchFromSupabase();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // Toast notifier
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -256,38 +312,157 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('Recomendação removida', 'info');
   };
 
-  const updateConcierge = (data: Partial<ConciergeSettings>) => {
-    setConcierge((prev) => ({ ...prev, ...data }));
+  const updateConcierge = async (data: Partial<ConciergeSettings>) => {
+    const updated = { ...concierge, ...data };
+    setConcierge(updated);
+    try {
+      await fetch('/api/concierge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enabled: updated.enabled,
+          name: updated.name,
+          welcome_message: updated.welcomeMessage,
+          tone: updated.tone,
+        }),
+      });
+    } catch (err) {
+      console.error('Erro ao salvar concierge no Supabase:', err);
+    }
     showToast('Configurações do Concierge IA salvas');
   };
 
-  const addKnowledgeItem = (item: Omit<KnowledgeItem, 'id' | 'updatedAt'>) => {
+  const addKnowledgeItem = async (item: Omit<KnowledgeItem, 'id' | 'updatedAt'>) => {
+    try {
+      const res = await fetch('/api/knowledge-base', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.item) {
+          setKnowledgeBase((prev) => [data.item, ...prev]);
+          showToast('Registrado no Supabase e base de conhecimento!');
+          return;
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao registrar no Supabase:', err);
+    }
+
+    // Fallback if network or server error occurs
     const newItem: KnowledgeItem = {
       ...item,
       id: `kb-${Date.now()}`,
-      updatedAt: new Date().toISOString().split('T')[0] || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
     setKnowledgeBase((prev) => [newItem, ...prev]);
     showToast('Item adicionado à base de conhecimento');
   };
 
-  const deleteKnowledgeItem = (id: string) => {
+  const deleteKnowledgeItem = async (id: string) => {
+    try {
+      await fetch(`/api/knowledge-base/${id}`, { method: 'DELETE' });
+    } catch (err) {
+      console.error('Erro ao deletar do Supabase:', err);
+    }
     setKnowledgeBase((prev) => prev.filter((k) => k.id !== id));
     showToast('Item removido da base de conhecimento', 'info');
   };
 
-  const updateAutomation = (id: string, data: Partial<Automation>) => {
+  const updateKnowledgeItem = async (id: string, updatedFields: Partial<KnowledgeItem>) => {
+    const existing = knowledgeBase.find((k) => k.id === id);
+    if (!existing) return;
+
+    const updatedItem = {
+      ...existing,
+      ...updatedFields,
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      const res = await fetch('/api/knowledge-base', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedItem),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.item) {
+          setKnowledgeBase((prev) =>
+            prev.map((k) => (k.id === id ? data.item : k))
+          );
+          showToast('Conhecimento atualizado e salvo no Supabase!');
+          return;
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao atualizar no Supabase:', err);
+    }
+
+    setKnowledgeBase((prev) =>
+      prev.map((k) => (k.id === id ? updatedItem : k))
+    );
+    showToast('Conhecimento atualizado');
+  };
+
+  const updateAutomation = async (id: string, data: Partial<Automation>) => {
+    const existing = automations.find((a) => a.id === id);
+    if (existing) {
+      const merged = { ...existing, ...data };
+      try {
+        const res = await fetch('/api/automations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(merged),
+        });
+        if (res.ok) {
+          const resData = await res.json();
+          if (resData.item) {
+            setAutomations((prev) =>
+              prev.map((a) => (a.id === id ? resData.item : a))
+            );
+            showToast('Automação salva no Supabase!');
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao atualizar automação no Supabase:', err);
+      }
+    }
+
     setAutomations((prev) =>
       prev.map((a) => (a.id === id ? { ...a, ...data } : a))
     );
-    showToast('Automação atualizada com sucesso');
+    showToast('Automação atualizada');
   };
 
   const updateWhatsAppStatus = (data: Partial<WhatsAppConnection>) => {
     setWhatsAppStatus((prev) => ({ ...prev, ...data }));
   };
 
-  const addStay = (stayData: Omit<Stay, 'id'>) => {
+  const addStay = async (stayData: Omit<Stay, 'id'>) => {
+    try {
+      const res = await fetch('/api/stays', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(stayData),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.item) {
+          setStays((prev) => [data.item, ...prev]);
+          showToast('Hóspede cadastrado e salvo no Supabase!');
+          return;
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao salvar estadia no Supabase:', err);
+    }
+
     const newStay: Stay = {
       ...stayData,
       id: `stay-${Date.now()}`,
@@ -296,14 +471,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('Hóspede cadastrado com sucesso.');
   };
 
-  const updateStay = (id: string, data: Partial<Stay>) => {
-    setStays((prev) => prev.map((s) => (s.id === id ? { ...s, ...data } : s)));
+  const updateStay = async (id: string, updatedFields: Partial<Stay>) => {
+    const existing = stays.find((s) => s.id === id);
+    if (existing) {
+      const merged = { ...existing, ...updatedFields };
+      try {
+        const res = await fetch('/api/stays', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(merged),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.item) {
+            setStays((prev) => prev.map((s) => (s.id === id ? data.item : s)));
+            showToast('Estadia atualizada no Supabase!');
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao atualizar estadia no Supabase:', err);
+      }
+    }
+
+    setStays((prev) => prev.map((s) => (s.id === id ? { ...s, ...updatedFields } : s)));
     showToast('Dados da estadia atualizados');
   };
 
-  const deleteStay = (id: string) => {
+  const deleteStay = async (id: string) => {
+    try {
+      await fetch(`/api/stays/${id}`, { method: 'DELETE' });
+    } catch (err) {
+      console.error('Erro ao deletar estadia no Supabase:', err);
+    }
     setStays((prev) => prev.filter((s) => s.id !== id));
-    showToast('Estadia removida', 'info');
+    showToast('Estadia removida do Supabase', 'info');
   };
 
   const addBlockedDate = (blocked: Omit<BlockedDate, 'id'>) => {
@@ -342,6 +544,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateConcierge,
         knowledgeBase,
         addKnowledgeItem,
+        updateKnowledgeItem,
         deleteKnowledgeItem,
         automations,
         updateAutomation,

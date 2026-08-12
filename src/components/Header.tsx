@@ -70,7 +70,7 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen, onLogout }) => {
   return (
     <header
       id="main-app-header"
-      className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-zinc-200/80 px-4 sm:px-8 py-4 transition-all"
+      className="sticky top-0 z-30 bg-[#14100C]/90 backdrop-blur-xl border-b border-[#C59A55]/20 px-4 sm:px-8 py-4 transition-all"
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         {/* Left: Mobile Toggle & Page Title */}
@@ -78,17 +78,17 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen, onLogout }) => {
           <button
             id="mobile-menu-toggle-btn"
             onClick={() => setMobileOpen(true)}
-            className="p-2 text-zinc-600 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 rounded-lg lg:hidden transition-colors cursor-pointer"
+            className="p-2 text-zinc-300 hover:text-white bg-[#1A1612] hover:bg-[#241E18] rounded-lg border border-[#C59A55]/20 lg:hidden transition-colors cursor-pointer"
             aria-label="Abrir menu"
           >
             <Menu className="w-5 h-5" />
           </button>
 
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#FBF9F4] tracking-tight">
               {titleInfo.greeting}
             </h2>
-            <p className="text-xs sm:text-sm text-zinc-500 font-normal mt-0.5">
+            <p className="text-xs sm:text-sm text-zinc-400 font-normal mt-0.5">
               {titleInfo.subtitle}
             </p>
           </div>
@@ -99,13 +99,13 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen, onLogout }) => {
           {/* WhatsApp Status Indicator */}
           <div
             id="header-whatsapp-status"
-            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium shadow-2xs"
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 text-xs font-medium shadow-xs"
           >
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
             </span>
-            <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+            <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
             <span>WhatsApp Conectado</span>
           </div>
 
@@ -113,10 +113,10 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen, onLogout }) => {
           {onLogout && (
             <button
               onClick={onLogout}
-              className="flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs sm:text-sm font-semibold border border-rose-200 shadow-2xs transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-2 bg-[#1A1612] hover:bg-[#241E18] text-[#E6C994] hover:text-white rounded-xl text-xs sm:text-sm font-semibold border border-[#C59A55]/30 hover:border-[#C59A55] shadow-xs transition-all cursor-pointer"
               title="Sair do Painel Admin e Voltar ao Site Principal"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-4 h-4 text-[#C59A55]" />
               <span className="hidden sm:inline">Voltar ao Site</span>
             </button>
           )}
@@ -125,9 +125,9 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen, onLogout }) => {
           <button
             id="header-preview-landing-btn"
             onClick={() => setIsLandingModalOpen(true)}
-            className="flex items-center gap-2 px-3.5 py-2 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs hover:shadow transition-all cursor-pointer group"
+            className="flex items-center gap-2 px-3.5 py-2 bg-gradient-to-r from-[#C59A55] via-[#D4A85F] to-[#B8860B] text-black hover:brightness-110 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-[#C59A55]/15 transition-all cursor-pointer group"
           >
-            <Eye className="w-4 h-4 text-rose-400 group-hover:scale-110 transition-transform" />
+            <Eye className="w-4 h-4 text-black group-hover:scale-110 transition-transform" />
             <span className="hidden md:inline">Ver Site do Hóspede</span>
             <span className="md:hidden">Site</span>
           </button>
