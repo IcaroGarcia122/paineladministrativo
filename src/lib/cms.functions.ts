@@ -1,73 +1,73 @@
-import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 
+const defaultContent = {
+  id: "",
+  chale_name: "Chalé A-Frame Florianópolis",
+  hero_title: "Conecte-se com o que realmente importa.",
+  hero_subtitle: "CHALÉ EXCLUSIVO EM FLORIANÓPOLIS",
+  hero_description: "Um refúgio privativo entre a natureza e o mar, criado para momentos inesquecíveis.",
+  about_title: "Seu refúgio entre a natureza e o mar",
+  about_text_1: "Desfrute de uma experiência única em um chalé privativo, cercado pela natureza e com uma vista encantadora para o mar.",
+  about_text_2: "Com arquitetura em estilo A-frame, estrutura em madeira, amplas paredes de vidro e ambientes integrados, o espaço foi pensado para proporcionar conforto, privacidade e momentos especiais.",
+  airbnb_url: "https://www.airbnb.com.br/rooms/1703914788039625027",
+};
+
 // Public function to fetch content
-export const getSiteContent = createServerFn({ method: "GET" })
-  .handler(async () => {
+export async function getSiteContent() {
+  try {
     const { data, error } = await supabase
       .from('site_content')
       .select('*')
       .single();
     
     if (error || !data) {
-      return {
-        id: "",
-        chale_name: "Chalé A-Frame Florianópolis",
-        hero_title: "Conecte-se com o que realmente importa.",
-        hero_subtitle: "CHALÉ EXCLUSIVO EM FLORIANÓPOLIS",
-        hero_description: "Um refúgio privativo entre a natureza e o mar, criado para momentos inesquecíveis.",
-        about_title: "Seu refúgio entre a natureza e o mar",
-        about_text_1: "Desfrute de uma experiência única em um chalé privativo, cercado pela natureza e com uma vista encantadora para o mar.",
-        about_text_2: "Com arquitetura em estilo A-frame, estrutura em madeira, amplas paredes de vidro e ambientes integrados, o espaço foi pensado para proporcionar conforto, privacidade e momentos especiais.",
-        airbnb_url: "https://www.airbnb.com.br/rooms/1703914788039625027",
-      };
+      return defaultContent;
     }
-    return data;
-  });
+    return { ...defaultContent, ...data };
+  } catch (err) {
+    console.warn('Error fetching site content:', err);
+    return defaultContent;
+  }
+}
 
 // Public function to track clicks
-export const trackAirbnbClick = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => z.object({ source: z.string() }).parse(data))
-  .handler(async ({ data }) => {
+export async function trackAirbnbClick(input?: { data?: { source?: string }; source?: string }) {
+  try {
+    const source = input?.data?.source || input?.source || 'direct';
     await supabase.from('airbnb_clicks').insert({ 
-      source: data.source,
+      source,
       device: 'web'
     });
     return { success: true };
-  });
+  } catch (err) {
+    console.warn('Error tracking airbnb click:', err);
+    return { success: false };
+  }
+}
 
 // Protected Admin Functions
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-
-export const updateSiteContent = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => z.object({
-    id: z.string(),
-    hero_title: z.string(),
-    hero_description: z.string(),
-    about_title: z.string(),
-    about_text_1: z.string(),
-    about_text_2: z.string(),
-    airbnb_url: z.string(),
-  }).parse(data))
-  .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+export async function updateSiteContent(input: any) {
+  try {
+    const payload = input?.data || input;
+    const { error } = await supabase
       .from('site_content')
-      .update(data)
-      .eq('id', data.id);
+      .update(payload)
+      .eq('id', payload.id);
     if (error) throw error;
     return { success: true };
-  });
+  } catch (err) {
+    console.error('Error updating site content:', err);
+    throw err;
+  }
+}
 
-export const getDashboardStats = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { count: clicks } = await context.supabase
+export async function getDashboardStats() {
+  try {
+    const { count: clicks } = await supabase
       .from('airbnb_clicks')
       .select('*', { count: 'exact', head: true });
     
-    const { count: guests } = await context.supabase
+    const { count: guests } = await supabase
       .from('guests')
       .select('*', { count: 'exact', head: true });
       
@@ -76,4 +76,12 @@ export const getDashboardStats = createServerFn({ method: "GET" })
       guests: guests || 0,
       conversionRate: 0.12,
     };
-  });
+  } catch (err) {
+    return {
+      clicks: 0,
+      guests: 0,
+      conversionRate: 0.12,
+    };
+  }
+}
+

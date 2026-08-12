@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppProvider, useApp } from './context/AppContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { ToastContainer } from './components/Toast';
@@ -76,15 +77,18 @@ export default function App() {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AppProvider>
-        {!isAdminLoggedIn ? (
-          <GuestSiteView onAdminLogin={() => setIsAdminLoggedIn(true)} />
-        ) : (
-          <MainContent onLogout={() => setIsAdminLoggedIn(false)} />
-        )}
-      </AppProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AppProvider>
+          {!isAdminLoggedIn ? (
+            <GuestSiteView onAdminLogin={() => setIsAdminLoggedIn(true)} />
+          ) : (
+            <MainContent onLogout={() => setIsAdminLoggedIn(false)} />
+          )}
+        </AppProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
+
 
